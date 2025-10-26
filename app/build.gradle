@@ -57,6 +57,7 @@ kapt {
     }
 
     // ✅ 关键：防止 schema 缺失导致 kapt crash
+    // ✅ 优化：确保 kapt 构建稳定性和错误类型正确性
     useBuildCache = false
     correctErrorTypes = true
 }
