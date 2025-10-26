@@ -1,5 +1,6 @@
 package com.tvplayer.app.data.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
@@ -9,28 +10,46 @@ data class Channel(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
-    @SerializedName("name")
+    @ColumnInfo(name = "name")
     val name: String,
 
-    @SerializedName("url")
+    @ColumnInfo(name = "url")
     val url: String,
 
-    @SerializedName("logo")
-    val logo: String? = null,
+    @ColumnInfo(name = "stream_url")
+    val streamUrl: String? = null,
 
-    @SerializedName("group")
+    @ColumnInfo(name = "group_name")
     val group: String? = null,
 
-    @SerializedName("epg")
+    @ColumnInfo(name = "logo")
+    val logo: String? = null,
+
+    @ColumnInfo(name = "epg")
     val epg: String? = null,
 
+    @ColumnInfo(name = "playlist_id")
     val playlistId: Long,
+
+    @ColumnInfo(name = "order")
     val order: Int = 0,
+
+    @ColumnInfo(name = "is_favorite")
     val isFavorite: Boolean = false,
+
+    @ColumnInfo(name = "last_played_position")
     val lastPlayedPosition: Long = 0,
+
+    @ColumnInfo(name = "is_available")
     val isAvailable: Boolean = true,
+
+    @ColumnInfo(name = "load_error")
     val loadError: String? = null,
+
+    @ColumnInfo(name = "last_played_time")
     val lastPlayedTime: Long = 0,
+
+    @ColumnInfo(name = "play_count")
     val playCount: Int = 0
 ) {
     fun getDisplayUrl(): String {
@@ -68,6 +87,7 @@ data class Channel(
             return Channel(
                 name = name.takeIf { it.isNotBlank() } ?: "Unknown Channel",
                 url = url,
+                streamUrl = url,
                 playlistId = playlistId
             )
         }

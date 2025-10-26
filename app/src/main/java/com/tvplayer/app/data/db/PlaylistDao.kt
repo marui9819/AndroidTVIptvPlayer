@@ -22,8 +22,8 @@ interface PlaylistDao {
     @Query("SELECT * FROM playlists WHERE sourceType = 'REMOTE' AND autoRefresh = 1")
     fun getAutoRefreshPlaylists(): LiveData<List<Playlist>>
 
-    @Query("SELECT * FROM playlists WHERE shouldRefresh() AND autoRefresh = 1")
-    suspend fun getPlaylistsNeedingRefresh(): List<Playlist>
+    @Query("SELECT * FROM playlists WHERE lastUpdated < :thresholdTime AND autoRefresh = 1")
+    suspend fun getPlaylistsNeedingRefresh(thresholdTime: Long): List<Playlist>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylist(playlist: Playlist): Long
