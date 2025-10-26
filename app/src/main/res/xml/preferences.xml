@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- 播放器设置 -->
+    <PreferenceCategory android:title="播放器设置">
+        <SwitchPreferenceCompat
+            android:key="use_hardware_acceleration"
+            android:title="硬件加速"
+            android:summary="启用硬件解码以获得更好的性能"
+            android:defaultValue="true" />
+
+        <ListPreference
+            android:key="video_quality"
+            android:title="默认视频质量"
+            android:summary="选择默认的视频播放质量"
+            android:entries="@array/video_quality_entries"
+            android:entryValues="@array/video_quality_values"
+            android:defaultValue="auto" />
+
+        <SwitchPreferenceCompat
+            android:key="enable_subtitles"
+            android:title="显示字幕"
+            android:summary="默认显示可用字幕"
+            android:defaultValue="false" />
+
+        <SeekBarPreference
+            android:key="buffer_size"
+            android:title="缓冲大小"
+            android:summary="调整视频缓冲大小 (MB)"
+            android:min="10"
+            android:max="100"
+            android:defaultValue="50"
+            app:showSeekBarValue="true" />
+    </PreferenceCategory>
+
+    <!-- 网络设置 -->
+    <PreferenceCategory android:title="网络设置">
+        <SwitchPreferenceCompat
+            android:key="auto_refresh_playlists"
+            android:title="自动刷新播放列表"
+            android:summary="定期刷新远程播放列表"
+            android:defaultValue="true" />
+
+        <ListPreference
+            android:key="refresh_interval"
+            android:title="刷新间隔"
+            android:summary="选择播放列表刷新频率"
+            android:entries="@array/refresh_interval_entries"
+            android:entryValues="@array/refresh_interval_values"
+            android:defaultValue="4"
+            android:dependency="auto_refresh_playlists" />
+
+        <EditTextPreference
+            android:key="network_timeout"
+            android:title="网络超时时间"
+            android:summary="设置网络请求超时时间 (秒)"
+            android:defaultValue="30"
+            android:inputType="number" />
+
+        <SwitchPreferenceCompat
+            android:key="use_http_cache"
+            android:title="启用HTTP缓存"
+            android:summary="缓存网络内容以减少带宽使用"
+            android:defaultValue="true" />
+    </PreferenceCategory>
+
+    <!-- 界面设置 -->
+    <PreferenceCategory android:title="界面设置">
+        <SwitchPreferenceCompat
+            android:key="show_channel_numbers"
+            android:title="显示频道号码"
+            android:summary="在列表中显示频道号码"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="show_channel_groups"
+            android:title="显示频道分组"
+            android:summary="在列表中显示频道分组"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="show_channel_logos"
+            android:title="显示频道Logo"
+            android:summary="在列表中显示频道Logo"
+            android:defaultValue="true" />
+
+        <ListPreference
+            android:key="theme_preference"
+            android:title="主题"
+            android:summary="选择应用主题"
+            android:entries="@array/theme_entries"
+            android:entryValues="@array/theme_values"
+            android:defaultValue="dark" />
+    </PreferenceCategory>
+
+    <!-- 存储设置 -->
+    <PreferenceCategory android:title="存储设置">
+        <Preference
+            android:key="cache_size"
+            android:title="缓存大小"
+            android:summary="查看和管理应用缓存"
+            android:clickable="true" />
+
+        <Preference
+            android:key="clear_cache"
+            android:title="清除缓存"
+            android:summary="清除所有缓存数据"
+            android:clickable="true" />
+
+        <Preference
+            android:key="export_data"
+            android:title="导出数据"
+            android:summary="导出频道和播放列表数据"
+            android:clickable="true" />
+
+        <Preference
+            android:key="import_data"
+            android:title="导入数据"
+            android:summary="从文件导入频道和播放列表数据"
+            android:clickable="true" />
+    </PreferenceCategory>
+
+    <!-- 高级设置 -->
+    <PreferenceCategory android:title="高级设置">
+        <SwitchPreferenceCompat
+            android:key="enable_debug_logging"
+            android:title="调试日志"
+            android:summary="启用详细调试日志记录"
+            android:defaultValue="false" />
+
+        <Preference
+            android:key="user_agent"
+            android:title="用户代理"
+            android:summary="设置HTTP请求的用户代理字符串"
+            android:clickable="true" />
+
+        <Preference
+            android:key="default_playlist_url"
+            android:title="默认播放列表URL"
+            android:summary="设置默认的远程播放列表URL"
+            android:clickable="true" />
+
+        <SwitchPreferenceCompat
+            android:key="background_playback"
+            android:title="后台播放"
+            android:summary="允许在后台继续播放视频"
+            android:defaultValue="false" />
+    </PreferenceCategory>
+
+    <!-- 关于 -->
+    <PreferenceCategory android:title="关于">
+        <Preference
+            android:key="app_version"
+            android:title="版本"
+            android:summary="1.0.0"
+            android:clickable="false" />
+
+        <Preference
+            android:key="check_for_updates"
+            android:title="检查更新"
+            android:summary="检查是否有新版本可用"
+            android:clickable="true" />
+
+        <Preference
+            android:key="privacy_policy"
+            android:title="隐私政策"
+            android:summary="查看隐私政策"
+            android:clickable="true" />
+
+        <Preference
+            android:key="terms_of_service"
+            android:title="服务条款"
+            android:summary="查看服务条款"
+            android:clickable="true" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

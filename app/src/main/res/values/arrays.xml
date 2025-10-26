@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 视频质量选项 -->
+    <string-array name="video_quality_entries">
+        <item>自动</item>
+        <item>1080p</item>
+        <item>720p</item>
+        <item>480p</item>
+        <item>360p</item>
+    </string-array>
+    <string-array name="video_quality_values">
+        <item>auto</item>
+        <item>1080p</item>
+        <item>720p</item>
+        <item>480p</item>
+        <item>360p</item>
+    </string-array>
+
+    <!-- 刷新间隔选项 -->
+    <string-array name="refresh_interval_entries">
+        <item>1 小时</item>
+        <item>2 小时</item>
+        <item>4 小时</item>
+        <item>6 小时</item>
+        <item>12 小时</item>
+        <item>24 小时</item>
+    </string-array>
+    <string-array name="refresh_interval_values">
+        <item>1</item>
+        <item>2</item>
+        <item>4</item>
+        <item>6</item>
+        <item>12</item>
+        <item>24</item>
+    </string-array>
+
+    <!-- 主题选项 -->
+    <string-array name="theme_entries">
+        <item>深色</item>
+        <item>浅色</item>
+        <item>跟随系统</item>
+    </string-array>
+    <string-array name="theme_values">
+        <item>dark</item>
+        <item>light</item>
+        <item>system</item>
+    </string-array>
+</resources>

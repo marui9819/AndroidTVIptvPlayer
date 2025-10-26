@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:background="?android:attr/selectableItemBackground"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
+
+    <!-- 频道Logo -->
+    <ImageView
+        android:id="@+id/channelLogo"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="16dp"
+        android:src="@android:drawable/ic_menu_gallery"
+        android:contentDescription="频道Logo"
+        android:scaleType="centerCrop" />
+
+    <!-- 频道信息 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/channelNumber"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:layout_marginEnd="8dp"
+                android:minWidth="24dp" />
+
+            <TextView
+                android:id="@+id/channelName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="频道名称"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:ellipsize="end"
+                android:maxLines="1" />
+
+            <!-- 收藏图标 -->
+            <ImageView
+                android:id="@+id/favoriteIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:src="@android:drawable/btn_star_big_off"
+                android:contentDescription="收藏"
+                android:scaleType="centerInside" />
+
+            <!-- 可用性指示器 -->
+            <ImageView
+                android:id="@+id/availabilityIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_marginStart="8dp"
+                android:src="@android:drawable/presence_online"
+                android:contentDescription="可用性"
+                android:scaleType="centerInside" />
+        </LinearLayout>
+
+        <!-- 频道分组 -->
+        <TextView
+            android:id="@+id/channelGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="分组名称"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1" />
+    </LinearLayout>
+
+</LinearLayout>
