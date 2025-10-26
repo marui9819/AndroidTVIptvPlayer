@@ -56,7 +56,7 @@ class PlayerActivity : AppCompatActivity() {
         playerView = binding.playerView
 
         // Setup ViewModel
-        viewModel: PlayerViewModel by viewModels()
+        viewModel = viewModels()
 
         // Initialize
         setupPlayer()
