@@ -1,115 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:background="?android:attr/selectableItemBackground"
+    android:gravity="center_vertical">
 
-    <data>
-        <variable
-            name="playlist"
-            type="com.tvplayer.app.data.model.Playlist" />
-        <variable
-            name="listener"
-            type="com.tvplayer.app.ui.main.PlaylistClickListener" />
-    </data>
+    <ImageView
+        android:id="@+id/playlistIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="16dp"
+        android:scaleType="fitCenter"
+        android:src="@android:drawable/ic_menu_share" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="?android:attr/selectableItemBackground"
-        android:onClick="@{() -> listener.onPlaylistClick(playlist)}"
-        android:gravity="center_vertical">
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/playlistIcon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="16dp"
-            android:scaleType="fitCenter"
-            android:src="@{playlist.isLocal() ? @android:drawable/ic_menu_archive : @android:drawable/ic_menu_share}"
-            tools:src="@android:drawable/ic_menu_share" />
+        <TextView
+            android:id="@+id/playlistName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="播放列表"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/playlistUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="http://example.com/list.m3u"
+            android:textColor="@android:color/darker_gray"
+            android:textSize="12sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
 
             <TextView
-                android:id="@+id/playlistName"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@{playlist.name}"
-                android:textColor="@android:color/white"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                tools:text="Playlist Name" />
-
-            <TextView
-                android:id="@+id/playlistDescription"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@{playlist.description != null ? playlist.description : (playlist.isLocal() ? \"本地播放列表\" : \"远程播放列表\")}"
-                android:textColor="@android:color/darker_gray"
-                android:textSize="12sp"
-                android:maxLines="1"
-                android:ellipsize="end"
-                tools:text="Playlist Description" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="4dp">
-
-                <TextView
-                    android:id="@+id/channelCount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@{@string/channel_count_format(playlist.channelCount)}"
-                    android:textColor="@android:color/darker_gray"
-                    android:textSize="11sp"
-                    tools:text="128 个频道" />
-
-                <TextView
-                    android:id="@+id/lastUpdated"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="@{playlist.getRefreshTimeString()}"
-                    android:textColor="@android:color/darker_gray"
-                    android:textSize="11sp"
-                    tools:text="2小时前" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center">
-
-            <ImageView
-                android:id="@+id/statusIcon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@{playlist.isActive ? @android:drawable/ic_menu_upload : @android:drawable/ic_menu_close_clear_cancel}"
-                tools:src="@android:drawable/ic_menu_upload" />
-
-            <TextView
-                android:id="@+id/statusText"
+                android:id="@+id/channelCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@{playlist.isDefault ? \"默认\" : (playlist.isActive ? \"启用\" : \"禁用\")}"
-                android:textColor="@{playlist.isActive ? @android:color/holo_green_light : @android:color/holo_red_light}"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                tools:text="启用" />
+                android:text="128 个频道"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/lastUpdated"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="2小时前"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="11sp" />
 
         </LinearLayout>
 
     </LinearLayout>
-</layout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/statusIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_menu_upload" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="启用"
+            android:textColor="@android:color/holo_green_light"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</LinearLayout>
