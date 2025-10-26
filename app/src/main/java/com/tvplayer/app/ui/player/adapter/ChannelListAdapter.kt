@@ -28,7 +28,7 @@ class ChannelListAdapter(
     }
 
     override fun onBindViewHolder(holder: ChannelViewHolder, position: Int) {
-        holder.bind(channels[position])
+        holder.bind(channels[position], position)
     }
 
     override fun getItemCount(): Int = channels.size
@@ -38,7 +38,7 @@ class ChannelListAdapter(
         private val onChannelSelected: (Channel) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(channel: Channel) {
+        fun bind(channel: Channel, position: Int) {
             binding.channelName.text = channel.name
             binding.channelGroup.text = channel.group ?: ""
             binding.channelNumber.text = "${position + 1}"
@@ -71,13 +71,11 @@ class ChannelListAdapter(
                 onChannelSelected(channel)
             }
 
-            // Handle long click for favorites
+            // Handle long click (toggle favorite placeholder)
             binding.root.setOnLongClickListener {
-                // Toggle favorite (would be handled by ViewModel in real implementation)
                 true
             }
         }
-    }
     }
 
     fun getChannelAt(position: Int): Channel? {
