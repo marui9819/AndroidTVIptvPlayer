@@ -60,7 +60,7 @@
                 android:id="@+id/stopButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:src="@drawable/ic_menu_close_clear_cancel"
                 android:background="?android:attr/selectableItemBackground"
                 android:contentDescription="Stop" />
 
@@ -81,7 +81,7 @@
                 android:id="@+id/qualityButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:src="@android:drawable/ic_menu_upload"
+                android:src="@drawable/ic_menu_upload"
                 android:background="?android:attr/selectableItemBackground"
                 android:contentDescription="Quality" />
 
@@ -97,7 +97,7 @@
                 android:id="@+id/subtitleButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_menu_edit"
                 android:background="?android:attr/selectableItemBackground"
                 android:contentDescription="Subtitles" />
 
@@ -105,7 +105,7 @@
                 android:id="@+id/fullscreenButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:src="@android:drawable/ic_menu_fullscreen"
+                android:src="@drawable/ic_fullscreen"
                 android:background="?android:attr/selectableItemBackground"
                 android:contentDescription="Fullscreen" />
 
