@@ -51,6 +51,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
 
+    - name: Clean Gradle build
+      run: ./gradlew clean
+
     - name: Build Debug APK
       run: ./gradlew assembleDebug
 
