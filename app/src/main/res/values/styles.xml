@@ -13,4 +13,10 @@
 
     <style name="Theme.TVPlayer.Dialog" parent="Theme.MaterialComponents.Dialog.Alert" />
 
+    <style name="Theme.Leanback.Search" parent="Theme.Leanback">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:colorBackground">@android:color/black</item>
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+
 </resources>
