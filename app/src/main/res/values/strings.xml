@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">Android TV IPTV Player</string>
     <string name="channel_count_format">%d 个频道</string>
+    <string name="local_playlist">本地播放列表</string>
+    <string name="remote_playlist">远程播放列表</string>
+    <string name="default_playlist">默认</string>
+    <string name="enabled">启用</string>
+    <string name="disabled">禁用</string>
 </resources>
