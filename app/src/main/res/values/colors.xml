@@ -10,7 +10,7 @@
 
     <!-- 主色调 -->
     <color name="primary_color">#FF6B6B</color>
-    <color name="primary_dark">#FF5252</color>
+    <color name="primary_color_alt">#FF5252</color>
     <color name="primary_light">#FFCDD2</color>
     <color name="accent_color">#FF4081</color>
 
