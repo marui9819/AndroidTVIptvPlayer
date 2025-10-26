@@ -40,6 +40,14 @@ android {
     }
 }
 
+kapt {
+    arguments {
+        arg("room.schemaLocation", "$projectDir/schemas")
+        arg("room.incremental", "true")
+        arg("room.expandProjection", "true")
+    }
+}
+
 dependencies {
     // Core Android dependencies
     implementation 'androidx.core:core-ktx:1.12.0'
