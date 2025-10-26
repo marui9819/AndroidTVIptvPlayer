@@ -12,7 +12,7 @@ import com.tvplayer.app.util.Constants
 @Database(
     entities = [Channel::class, Playlist::class],
     version = 1,
-    exportSchema = true
+    exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
