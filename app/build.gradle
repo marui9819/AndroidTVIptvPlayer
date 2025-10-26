@@ -1,7 +1,7 @@
 plugins {
-    id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
-    id 'kotlin-kapt'
+    id 'com.android.application' version '8.1.0'
+    id 'org.jetbrains.kotlin.android' version '1.9.0'
+    id 'org.jetbrains.kotlin.kapt' version '1.9.0'
 }
 
 android {
@@ -38,11 +38,7 @@ android {
         dataBinding true
     }
 
-    kapt {
-        correctErrorTypes = true
-        useBuildCache = false
-        includeCompileClasspath = false
-    }
+    // Kapt configuration moved to plugins block with versions
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
