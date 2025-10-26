@@ -82,4 +82,7 @@ dependencies {
 
     // Leanback support for Android TV
     implementation 'androidx.leanback:leanback:1.0.0'
+
+    // AndroidX Preference for settings
+    implementation 'androidx.preference:preference-ktx:1.2.1'
 }
