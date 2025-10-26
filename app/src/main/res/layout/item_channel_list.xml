@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="channel"
+            type="com.tvplayer.app.data.model.Channel" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/channelNumber"
+            android:layout_width="32dp"
+            android:layout_height="wrap_content"
+            android:text="@{String.valueOf(channel.id)}"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="1" />
+
+        <ImageView
+            android:id="@+id/channelLogo"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:scaleType="fitCenter"
+            tools:src="@android:drawable/ic_menu_gallery" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/channelName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@{channel.name}"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="Channel Name" />
+
+            <TextView
+                android:id="@+id/channelGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@{channel.group}"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="12sp"
+                tools:text="Channel Group" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/favoriteIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:src="@{channel.isFavorite ? @android:drawable/btn_star_big_on : @android:drawable/btn_star_big_off}"
+            tools:src="@android:drawable/btn_star_big_off" />
+
+        <ImageView
+            android:id="@+id/availabilityIndicator"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:src="@{channel.isAvailable ? @android:drawable/presence_online : @android:drawable/presence_busy}"
+            tools:src="@android:drawable/presence_online" />
+
+    </LinearLayout>
+</layout>

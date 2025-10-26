@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 class MainActivity : FragmentActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var viewModel: MainViewModel
+    private val viewModel: MainViewModel by viewModels()
     private lateinit var browseFragment: BrowseSupportFragment
     private lateinit var backgroundManager: BackgroundManager
     private lateinit var preferences: PreferencesHelper
@@ -42,7 +42,6 @@ class MainActivity : FragmentActivity() {
         setContentView(binding.root)
 
         // Initialize components
-        viewModel = androidx.activity.viewModels<MainViewModel>()
         preferences = PreferencesHelper(this)
         backgroundManager = BackgroundManager.getInstance(this)
 
@@ -53,7 +52,7 @@ class MainActivity : FragmentActivity() {
         setupBackgroundManager()
 
         // Load initial data
-        viewModel.loadPlaylists()
+        viewModel.refreshPlaylists()
     }
 
     private fun setupBrowseFragment() {
