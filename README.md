@@ -113,6 +113,19 @@ app/
 │   └── xml/               # XML 配置
 ```
 
+## 📚 技术文档
+
+### 文档导航
+- 📖 [详细升级记录](docs/ANDROID_UPGRADE_LOG.md) - 完整的技术升级过程和故障排除
+- 🚀 [快速修复指南](docs/QUICK_FIX_GUIDE.md) - 常见问题快速解决方案
+- 🔍 [版本兼容性表](docs/ANDROID_UPGRADE_LOG.md#版本兼容性矩阵) - 各组件版本兼容性参考
+
+### 升级注意事项
+- ✅ **当前版本**: Gradle 8.4 + AGP 8.3.0 + Java 17
+- 🔧 **环境要求**: JDK 17+ (推荐使用 JDK 17)
+- 📱 **目标SDK**: Android 14 (API 34)
+- 🛠️ **构建工具**: Kotlin 1.9.0+
+
 ## 系统要求
 
 - **最低版本**: Android 7.0 (API 24)
