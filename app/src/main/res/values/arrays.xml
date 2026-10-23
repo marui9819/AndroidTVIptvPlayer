@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="resize_mode_entries">
+        <item>完整显示</item>
+        <item>裁切铺满</item>
+        <item>拉伸铺满</item>
+    </string-array>
+    <string-array name="resize_mode_values">
+        <item>0</item>
+        <item>4</item>
+        <item>3</item>
+    </string-array>
+    <!-- 视频质量选项 -->
+    <string-array name="video_quality_entries">
+        <item>自动</item>
+        <item>1080p</item>
+        <item>720p</item>
+        <item>480p</item>
+        <item>360p</item>
+    </string-array>
+    <string-array name="video_quality_values">
+        <item>auto</item>
+        <item>1080p</item>
+        <item>720p</item>
+        <item>480p</item>
+        <item>360p</item>
+    </string-array>
+
+    <!-- 刷新间隔选项 -->
+    <string-array name="refresh_interval_entries">
+        <item>5 分钟</item>
+        <item>15 分钟</item>
+        <item>30 分钟</item>
+        <item>1 小时</item>
+        <item>3 小时</item>
+        <item>6 小时</item>
+    </string-array>
+    <string-array name="refresh_interval_values">
+        <item>300000</item>
+        <item>900000</item>
+        <item>1800000</item>
+        <item>3600000</item>
+        <item>10800000</item>
+        <item>21600000</item>
+    </string-array>
+
+    <string-array name="epg_refresh_interval_entries">
+        <item>1 小时</item>
+        <item>3 小时</item>
+        <item>6 小时</item>
+        <item>12 小时</item>
+        <item>24 小时</item>
+    </string-array>
+    <string-array name="epg_refresh_interval_values">
+        <item>3600000</item>
+        <item>10800000</item>
+        <item>21600000</item>
+        <item>43200000</item>
+        <item>86400000</item>
+    </string-array>
+
+    <!-- 主题选项 -->
+    <string-array name="theme_entries">
+        <item>深色</item>
+        <item>浅色</item>
+        <item>跟随系统</item>
+    </string-array>
+    <string-array name="theme_values">
+        <item>dark</item>
+        <item>light</item>
+        <item>system</item>
+    </string-array>
+
+    <string-array name="huya_scheme_entries">
+        <item>智能热切换（默认）</item>
+        <item>单流 FLV 直连</item>
+        <item>单流 HLS 直连</item>
+    </string-array>
+    <string-array name="huya_scheme_values">
+        <item>huya_hot_swap</item>
+        <item>huya_single_flv</item>
+        <item>huya_single_hls</item>
+    </string-array>
+
+    <string-array name="douyu_scheme_entries">
+        <item>智能模式（默认）</item>
+        <item>官方流优先</item>
+        <item>预览流优先</item>
+        <item>入口兼容模式</item>
+    </string-array>
+    <string-array name="douyu_scheme_values">
+        <item>douyu_smart</item>
+        <item>douyu_official</item>
+        <item>douyu_preview</item>
+        <item>douyu_entry</item>
+    </string-array>
+</resources>

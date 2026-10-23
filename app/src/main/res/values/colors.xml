@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 基础颜色 -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="gray">#808080</color>
+    <color name="accent">#FF4081</color>
+    <color name="primary">#3F51B5</color>
+    <color name="primary_dark">#303F9F</color>
+
+    <!-- 主色调 -->
+    <color name="primary_color">#0F5D84</color>
+    <color name="primary_color_alt">#0A3F5E</color>
+    <color name="primary_light">#62D9FF</color>
+    <color name="accent_color">#62D9FF</color>
+
+    <!-- TV D-pad focus: saturated cyan remains visible on low-quality panels. -->
+    <color name="tv_focus_color">#62D9FF</color>
+    <color name="tv_focus_surface">#164768</color>
+
+    <!-- 背景色 -->
+    <color name="background_dark">#1E1E1E</color>
+    <color name="background_secondary">#2D2D2D</color>
+    <color name="card_background">#3E3E3E</color>
+
+    <!-- 文字颜色 -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B0B0B0</color>
+    <color name="text_hint">#808080</color>
+
+    <!-- 分隔线颜色 -->
+    <color name="divider_color">#404040</color>
+
+    <!-- 按钮颜色 -->
+    <color name="button_normal">#0F5D84</color>
+    <color name="button_pressed">#0A3F5E</color>
+    <color name="button_disabled">#808080</color>
+
+    <!-- 透明度 -->
+    <color name="overlay_dark">#80000000</color>
+    <color name="overlay_light">#40000000</color>
+
+    <!-- 状态颜色 -->
+    <color name="success_color">#4CAF50</color>
+    <color name="warning_color">#FFC107</color>
+    <color name="error_color">#F44336</color>
+    <color name="info_color">#2196F3</color>
+</resources>

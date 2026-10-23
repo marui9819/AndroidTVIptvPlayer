@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/tv_list_item_background"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/entry_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/entry_error_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="刷新失败"
+            android:text="!"
+            android:textColor="#FFFF5252"
+            android:textSize="25sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/entry_switches"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/entry_auto_refresh_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="自动刷新"
+                android:textColor="#FFD9F5FF"
+                android:textSize="12sp" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/entry_auto_refresh_switch"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:background="@drawable/tv_toggle_background"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="自动刷新"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                app:showText="false" />
+
+            <TextView
+                android:id="@+id/entry_enable_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="启用"
+                android:textColor="#FFD9F5FF"
+                android:textSize="12sp" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/entry_enable_switch"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/tv_toggle_background"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="启用"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                app:showText="false" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/entry_summary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#CCFFFFFF"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/entry_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#90CAF9"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/entry_primary_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="编辑" />
+
+        <Button
+            android:id="@+id/entry_secondary_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="测试" />
+
+        <Button
+            android:id="@+id/entry_delete_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="删除" />
+    </LinearLayout>
+</LinearLayout>
+</layout>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="channel"
+            type="com.tvplayer.app.data.repository.MergedChannel" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="@drawable/tv_list_item_background"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/channelNumber"
+            android:layout_width="32dp"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="1" />
+
+        <ImageView
+            android:id="@+id/channelLogo"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/ic_channel_placeholder"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            tools:src="@android:drawable/ic_menu_gallery" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/channelName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="Channel Name" />
+
+            <TextView
+                android:id="@+id/channelGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="12sp"
+                tools:text="Channel Group" />
+
+            <TextView
+                android:id="@+id/channelSource"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#B0FFFFFF"
+                android:textSize="11sp"
+                tools:text="来源A" />
+
+            <TextView
+                android:id="@+id/channelState"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#7CFC00"
+                android:textSize="11sp"
+                tools:text="120ms" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/favoriteIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            tools:src="@android:drawable/btn_star_big_off" />
+
+        <ImageView
+            android:id="@+id/availabilityIndicator"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            tools:src="@android:drawable/presence_online" />
+
+        <TextView
+            android:id="@+id/unavailableBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="#B71C1C"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:text="不可用"
+            android:textColor="@android:color/white"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</layout>

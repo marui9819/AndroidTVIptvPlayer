@@ -1,0 +1,11 @@
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="user_data.xml" />
+        <exclude domain="sharedpref" path="tvplayer_preferences.xml" />
+        <exclude domain="sharedpref" path="sleep_timer_runtime.xml" />
+        <exclude domain="sharedpref" path="channel_user_state.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="sleep_timer_runtime.xml" />
+    </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,7 @@
+<full-backup-content>
+    <exclude domain="sharedpref" path="user_data.xml" />
+    <!-- Preferences contain LAN editing tokens and diagnostics endpoints. -->
+    <exclude domain="sharedpref" path="tvplayer_preferences.xml" />
+    <exclude domain="sharedpref" path="sleep_timer_runtime.xml" />
+    <exclude domain="sharedpref" path="channel_user_state.xml" />
+</full-backup-content>
