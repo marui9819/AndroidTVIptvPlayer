@@ -9,10 +9,14 @@
     <color name="primary_dark">#303F9F</color>
 
     <!-- 主色调 -->
-    <color name="primary_color">#FF6B6B</color>
-    <color name="primary_color_alt">#FF5252</color>
-    <color name="primary_light">#FFCDD2</color>
-    <color name="accent_color">#FF4081</color>
+    <color name="primary_color">#0F5D84</color>
+    <color name="primary_color_alt">#0A3F5E</color>
+    <color name="primary_light">#62D9FF</color>
+    <color name="accent_color">#62D9FF</color>
+
+    <!-- TV D-pad focus: saturated cyan remains visible on low-quality panels. -->
+    <color name="tv_focus_color">#62D9FF</color>
+    <color name="tv_focus_surface">#164768</color>
 
     <!-- 背景色 -->
     <color name="background_dark">#1E1E1E</color>
@@ -28,8 +32,8 @@
     <color name="divider_color">#404040</color>
 
     <!-- 按钮颜色 -->
-    <color name="button_normal">#FF6B6B</color>
-    <color name="button_pressed">#FF5252</color>
+    <color name="button_normal">#0F5D84</color>
+    <color name="button_pressed">#0A3F5E</color>
     <color name="button_disabled">#808080</color>
 
     <!-- 透明度 -->

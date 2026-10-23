@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+<ScrollView
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background_dark"
-    android:focusable="true"
-    android:focusableInTouchMode="true">
+    android:focusable="false"
+    android:focusableInTouchMode="false">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -45,7 +47,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:padding="12dp"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:background="@drawable/tv_list_item_background"
                     android:clickable="true"
                     android:focusable="true">
 
@@ -99,7 +101,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:padding="12dp"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:background="@drawable/tv_list_item_background"
                     android:clickable="true"
                     android:focusable="true">
 
@@ -153,7 +155,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:padding="12dp"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:background="@drawable/tv_list_item_background"
                     android:clickable="true"
                     android:focusable="true">
 
@@ -227,7 +229,7 @@
                     android:layout_marginBottom="12dp"
                     android:hint="播放列表名称"
                     app:hintTextColor="@color/text_secondary"
-                    app:boxStrokeColor="@color/primary_color">
+                    app:boxStrokeColor="@color/tv_focus_color">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/nameEditText"
@@ -243,7 +245,7 @@
                     android:layout_height="wrap_content"
                     android:hint="播放列表URL"
                     app:hintTextColor="@color/text_secondary"
-                    app:boxStrokeColor="@color/primary_color">
+                    app:boxStrokeColor="@color/tv_focus_color">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/urlEditText"
@@ -269,8 +271,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:text="取消"
-                android:textColor="@color/text_primary"
-                android:background="?android:attr/selectableItemBackground"
+                android:background="@drawable/tv_action_button_background"
+                android:textColor="@color/tv_button_text"
                 android:layout_marginEnd="8dp" />
 
             <Button
@@ -278,8 +280,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:text="导入"
-                android:textColor="@color/white"
-                android:background="@color/primary_color"
+                android:textColor="@color/tv_button_text"
+                android:background="@drawable/tv_action_button_background"
                 android:paddingHorizontal="24dp" />
         </LinearLayout>
 
@@ -295,3 +297,4 @@
     </LinearLayout>
 
 </ScrollView>
+</layout>

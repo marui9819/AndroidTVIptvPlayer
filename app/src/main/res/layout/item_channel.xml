@@ -17,7 +17,9 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="16dp"
-        android:background="?android:attr/selectableItemBackground"
+        android:background="@drawable/tv_list_item_background"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:onClick="@{() -> listener.onChannelClick(channel)}"
         android:gravity="center_vertical">
 

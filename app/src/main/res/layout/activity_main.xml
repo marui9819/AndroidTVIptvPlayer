@@ -16,10 +16,39 @@
         android:background="@android:color/black"
         tools:context=".ui.main.MainActivity">
 
-        <androidx.leanback.app.BrowseSupportFragment
-            android:id="@+id/browse_fragment"
+        <FrameLayout
+            android:id="@+id/browse_fragment_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <LinearLayout
+            android:id="@+id/cornerOverlay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|top"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="96dp"
+            android:background="#66000000"
+            android:gravity="end"
+            android:orientation="vertical"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="6dp">
+            <TextView
+                android:id="@+id/currentTimeBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="21:08" />
+            <TextView
+                android:id="@+id/versionBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                tools:text="5xingTV 2.9.122" />
+        </LinearLayout>
 
     </FrameLayout>
 </layout>

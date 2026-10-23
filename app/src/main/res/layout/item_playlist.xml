@@ -17,7 +17,9 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="16dp"
-        android:background="?android:attr/selectableItemBackground"
+        android:background="@drawable/tv_list_item_background"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:onClick="@{() -> listener.onPlaylistClick(playlist)}"
         android:gravity="center_vertical">
 
@@ -27,7 +29,7 @@
             android:layout_height="48dp"
             android:layout_marginEnd="16dp"
             android:scaleType="fitCenter"
-            android:src="@{playlist.isLocal() ? @android:drawable/ic_menu_archive : @android:drawable/ic_menu_share}"
+            android:src="@{playlist.isLocal() ? @android:drawable/ic_menu_save : @android:drawable/ic_menu_share}"
             tools:src="@android:drawable/ic_menu_share" />
 
         <LinearLayout

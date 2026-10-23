@@ -4,8 +4,10 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.tvplayer.app.databinding.ItemSearchResultBinding
 import com.tvplayer.app.data.model.Channel
+import com.tvplayer.app.R
 
 class SearchAdapter(
     private val onChannelSelected: (Channel) -> Unit
@@ -39,7 +41,7 @@ class SearchAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(channel: Channel) {
-            binding.channelName.text = channel.name
+            binding.channelName.text = com.tvplayer.app.util.ChannelUserState.get(binding.root.context).displayName(channel)
             binding.channelGroup.text = channel.group ?: ""
             binding.channelNumber.text = "${channel.order + 1}"
 
@@ -47,11 +49,13 @@ class SearchAdapter(
             channel.logo?.let { logoUrl ->
                 Glide.with(binding.root.context)
                     .load(logoUrl)
-                    .placeholder(android.R.drawable.ic_menu_gallery)
-                    .error(android.R.drawable.ic_menu_gallery)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.drawable.ic_channel_placeholder)
+                    .error(R.drawable.ic_channel_placeholder)
+                    .dontAnimate()
                     .into(binding.channelLogo)
             } ?: run {
-                binding.channelLogo.setImageResource(android.R.drawable.ic_menu_gallery)
+                binding.channelLogo.setImageResource(R.drawable.ic_channel_placeholder)
             }
 
             // Set favorite icon
@@ -65,9 +69,6 @@ class SearchAdapter(
                 if (channel.isAvailable) android.R.drawable.presence_online
                 else android.R.drawable.presence_busy
             )
-
-            // Show search match highlighting
-            highlightSearchMatch(channel.name, binding.searchEditText.text?.toString() ?: "")
 
             // Handle click
             binding.root.setOnClickListener {
@@ -137,7 +138,7 @@ class SearchAdapter(
             val index = channels.indexOf(channel)
             if (index != -1) {
                 channels = channels.toMutableList().apply {
-                    set(index, channel.copy(isAvailable = isAvailable, loadError = error))
+                    set(index, channel.copy(isAvailable = isAvailable, availabilityError = error))
                 }
                 notifyItemChanged(index)
             }

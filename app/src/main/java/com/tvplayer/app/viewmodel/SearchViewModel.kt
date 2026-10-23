@@ -10,6 +10,7 @@ import com.tvplayer.app.data.model.Channel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -28,7 +29,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     val searchError: LiveData<String?> = _searchError
 
     private val _searchQuery = MutableStateFlow<String>("")
-    val searchQuery: StateFlow<String> = _searchQuery
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     fun searchChannels(query: String) {
         if (query.trim().length < 2) {
@@ -43,7 +44,10 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
             try {
                 val results = withContext(Dispatchers.IO) {
-                    channelDao.searchChannels(query.trim())
+                    val urls = com.tvplayer.app.util.ChannelUserState.get(getApplication()).aliases()
+                        .filterValues { it.contains(query.trim(), ignoreCase = true) }.keys.toList()
+                    val aliasMatches = if (urls.isEmpty()) emptyList() else channelDao.getActiveChannelsByUrls(urls)
+                    (channelDao.searchActiveChannelsList(query.trim()) + aliasMatches).distinctBy { it.id }
                 }
 
                 _searchResults.value = results
@@ -67,7 +71,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
             try {
                 val results = withContext(Dispatchers.IO) {
-                    channelDao.getChannelsByGroup(groupName)
+                    channelDao.getActiveChannelsByGroup(groupName)
                 }
 
                 _searchResults.value = results

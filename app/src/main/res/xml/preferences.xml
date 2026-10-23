@@ -3,9 +3,40 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <!-- 播放器设置 -->
-    <PreferenceCategory android:title="播放器设置">
+    <PreferenceCategory android:key="section_playback" android:title="播放与声音">
+        <ListPreference
+            android:key="default_resize_mode"
+            android:title="默认画面比例"
+            android:summary="完整显示；已单独设置比例的频道优先使用自己的设置"
+            android:entries="@array/resize_mode_entries"
+            android:entryValues="@array/resize_mode_values"
+            android:defaultValue="0" />
         <SwitchPreferenceCompat
-            android:key="use_hardware_acceleration"
+            android:key="auto_play_enabled"
+            android:title="启动后自动播放"
+            android:summary="关闭后先显示首页，由您选择频道；低配电视建议关闭"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="auto_failover_enabled"
+            android:title="播放失败后自动切换来源"
+            android:summary="关闭：持续重试当前来源；开启：重试失败后切换其他来源或频道（默认关闭）"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="av_precheck_enabled"
+            android:title="音视频预检"
+            android:summary="默认开启：虎牙 FLV 播放前检查音频数据与视频关键帧；有超时和流量上限，可能略增起播时间"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="missing_audio_recovery_enabled"
+            android:title="缺音自动恢复"
+            android:summary="默认开启：确认缺少音轨或音频未启动时，最多额外尝试同频道 3 次；不会因节目安静而重试，不自动换频道"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="hw_acceleration"
             android:title="硬件加速"
             android:summary="启用硬件解码以获得更好的性能"
             android:defaultValue="true" />
@@ -22,61 +53,43 @@
             android:key="enable_subtitles"
             android:title="显示字幕"
             android:summary="默认显示可用字幕"
-            android:defaultValue="false" />
+            android:defaultValue="true" />
 
-        <SeekBarPreference
-            android:key="buffer_size"
-            android:title="缓冲大小"
-            android:summary="调整视频缓冲大小 (MB)"
-            android:min="10"
-            android:max="100"
-            android:defaultValue="50"
-            app:showSeekBarValue="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:key="section_timer" android:title="定时关闭">
+        <Preference
+            android:key="sleep_timer"
+            android:title="设置定时关闭"
+            android:summary="未开启；设置几小时几分钟后停止播放并退出应用，不关闭设备" />
+        <Preference
+            android:key="cancel_sleep_timer"
+            android:title="取消定时关闭"
+            android:enabled="false" />
     </PreferenceCategory>
 
     <!-- 网络设置 -->
-    <PreferenceCategory android:title="网络设置">
+    <PreferenceCategory android:key="section_network" android:title="订阅与网络">
         <SwitchPreferenceCompat
-            android:key="auto_refresh_playlists"
-            android:title="自动刷新播放列表"
-            android:summary="定期刷新远程播放列表"
+            android:key="enable_auto_refresh"
+            android:title="自动刷新视频源"
+            android:summary="按各视频源开关和下方间隔定期刷新远程节目源"
             android:defaultValue="true" />
 
-        <ListPreference
+        <Preference
             android:key="refresh_interval"
-            android:title="刷新间隔"
-            android:summary="选择播放列表刷新频率"
-            android:entries="@array/refresh_interval_entries"
-            android:entryValues="@array/refresh_interval_values"
-            android:defaultValue="4"
-            android:dependency="auto_refresh_playlists" />
+            android:title="视频源自动刷新间隔"
+            android:summary="默认每1小时检查一次"
+            android:dependency="enable_auto_refresh" />
 
-        <EditTextPreference
-            android:key="network_timeout"
-            android:title="网络超时时间"
-            android:summary="设置网络请求超时时间 (秒)"
-            android:defaultValue="30"
-            android:inputType="number" />
-
-        <SwitchPreferenceCompat
-            android:key="use_http_cache"
-            android:title="启用HTTP缓存"
-            android:summary="缓存网络内容以减少带宽使用"
-            android:defaultValue="true" />
     </PreferenceCategory>
 
     <!-- 界面设置 -->
-    <PreferenceCategory android:title="界面设置">
+    <PreferenceCategory android:key="section_interface" android:title="画面与界面">
         <SwitchPreferenceCompat
             android:key="show_channel_numbers"
             android:title="显示频道号码"
             android:summary="在列表中显示频道号码"
-            android:defaultValue="true" />
-
-        <SwitchPreferenceCompat
-            android:key="show_channel_groups"
-            android:title="显示频道分组"
-            android:summary="在列表中显示频道分组"
             android:defaultValue="true" />
 
         <SwitchPreferenceCompat
@@ -85,8 +98,59 @@
             android:summary="在列表中显示频道Logo"
             android:defaultValue="true" />
 
+        <SwitchPreferenceCompat
+            android:key="show_current_channel_name"
+            android:title="播放时显示当前频道名称"
+            android:summary="播放画面左上角常驻显示当前频道名称"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="show_unavailable_channels"
+            android:title="显示不可用频道"
+            android:summary="在频道列表中保留不可用频道并显示灰色状态"
+            android:defaultValue="false" />
+
+        <SeekBarPreference
+            android:key="channel_name_transparency"
+            android:title="频道名称透明度"
+            android:summary="50%；0% 为不透明，100% 为完全透明"
+            android:defaultValue="50"
+            android:max="100"
+            android:dependency="show_current_channel_name"
+            app:min="0"
+            app:showSeekBarValue="true"
+            app:seekBarIncrement="5" />
+
+        <SeekBarPreference
+            android:key="recent_history_limit"
+            android:title="最近播放列表数量"
+            android:summary="保留最近正常播放的 20 个频道；减少数量会裁剪较早记录"
+            android:defaultValue="20"
+            android:max="100"
+            app:min="1"
+            app:seekBarIncrement="1"
+            app:showSeekBarValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="show_current_time"
+            android:title="右上角显示当前时间"
+            android:summary="24 小时制 HH:MM"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="show_version_badge"
+            android:title="右上角显示版本号"
+            android:summary="关闭后仍可在关于中查看安装版本"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="show_empty_channel_groups"
+            android:title="显示空分类"
+            android:summary="即使分类下当前没有可用频道，也保留该分类"
+            android:defaultValue="false" />
+
         <ListPreference
-            android:key="theme_preference"
+            android:key="ui_theme"
             android:title="主题"
             android:summary="选择应用主题"
             android:entries="@array/theme_entries"
@@ -94,85 +158,71 @@
             android:defaultValue="dark" />
     </PreferenceCategory>
 
-    <!-- 存储设置 -->
-    <PreferenceCategory android:title="存储设置">
-        <Preference
-            android:key="cache_size"
-            android:title="缓存大小"
-            android:summary="查看和管理应用缓存"
-            android:clickable="true" />
-
-        <Preference
-            android:key="clear_cache"
-            android:title="清除缓存"
-            android:summary="清除所有缓存数据"
-            android:clickable="true" />
-
-        <Preference
-            android:key="export_data"
-            android:title="导出数据"
-            android:summary="导出频道和播放列表数据"
-            android:clickable="true" />
-
-        <Preference
-            android:key="import_data"
-            android:title="导入数据"
-            android:summary="从文件导入频道和播放列表数据"
-            android:clickable="true" />
-    </PreferenceCategory>
-
     <!-- 高级设置 -->
-    <PreferenceCategory android:title="高级设置">
-        <SwitchPreferenceCompat
-            android:key="enable_debug_logging"
-            android:title="调试日志"
-            android:summary="启用详细调试日志记录"
-            android:defaultValue="false" />
-
+    <PreferenceCategory android:key="section_advanced" android:title="诊断与工具">
         <Preference
-            android:key="user_agent"
-            android:title="用户代理"
-            android:summary="设置HTTP请求的用户代理字符串"
+            android:key="open_developer_options"
+            android:title="打开系统开发者选项"
+            android:summary="尝试多种 Android / Android TV 隐藏入口"
             android:clickable="true" />
 
         <Preference
-            android:key="default_playlist_url"
-            android:title="默认播放列表URL"
-            android:summary="设置默认的远程播放列表URL"
+            android:key="open_system_settings"
+            android:title="打开原生系统设置"
+            android:summary="如果开发者选项入口被隐藏，可从系统设置中手动查找"
+            android:clickable="true" />
+
+        <Preference
+            android:key="check_root_access"
+            android:title="检测 Root 权限"
+            android:summary="仅检测设备是否已有 su，不会尝试破解或获取 Root"
             android:clickable="true" />
 
         <SwitchPreferenceCompat
-            android:key="background_playback"
-            android:title="后台播放"
-            android:summary="允许在后台继续播放视频"
+            android:key="diagnostics_enabled"
+            android:title="故障诊断上报"
+            android:summary="将播放错误和疑似闪退信息发送到指定的本机服务"
             android:defaultValue="false" />
+
+        <EditTextPreference
+            android:key="diagnostics_server_url"
+            android:title="诊断服务地址"
+            android:summary="留空时只保存在设备本地；如需上报，请手动填写你自己的服务地址"
+            android:dialogTitle="输入本机诊断服务地址"
+            android:defaultValue=""
+            android:inputType="textUri"
+            android:dependency="diagnostics_enabled" />
+
+        <Preference
+            android:key="export_diagnostics"
+            android:title="查看诊断日志目录"
+            android:summary="显示应用保存诊断 JSON 文件的位置"
+            android:clickable="true" />
+
+        <Preference
+            android:key="clear_diagnostics"
+            android:title="清除诊断日志"
+            android:summary="删除应用内保存的诊断 JSON 文件"
+            android:clickable="true" />
+
+        <EditTextPreference
+            android:key="remote_source_server_url"
+            android:title="手机编辑节目源服务地址"
+            android:summary="节目源二维码由电视本机提供，无需电脑服务；留空即可"
+            android:dialogTitle="输入可选服务地址"
+            android:defaultValue=""
+            android:inputType="textUri" />
+
     </PreferenceCategory>
 
     <!-- 关于 -->
-    <PreferenceCategory android:title="关于">
+    <PreferenceCategory android:key="section_about" android:title="关于应用">
         <Preference
             android:key="app_version"
             android:title="版本"
-            android:summary="1.0.0"
+            android:summary="2.0.0"
             android:clickable="false" />
 
-        <Preference
-            android:key="check_for_updates"
-            android:title="检查更新"
-            android:summary="检查是否有新版本可用"
-            android:clickable="true" />
-
-        <Preference
-            android:key="privacy_policy"
-            android:title="隐私政策"
-            android:summary="查看隐私政策"
-            android:clickable="true" />
-
-        <Preference
-            android:key="terms_of_service"
-            android:title="服务条款"
-            android:summary="查看服务条款"
-            android:clickable="true" />
     </PreferenceCategory>
 
 </PreferenceScreen>

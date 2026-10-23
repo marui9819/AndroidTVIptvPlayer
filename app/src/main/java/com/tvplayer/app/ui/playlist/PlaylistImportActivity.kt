@@ -1,42 +1,33 @@
 package com.tvplayer.app.ui.playlist
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.tvplayer.app.databinding.ActivityPlaylistImportBinding
 import com.tvplayer.app.data.model.Playlist
 import com.tvplayer.app.viewmodel.MainViewModel
 import com.tvplayer.app.util.PreferencesHelper
+import com.tvplayer.app.util.TvFocusStyler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class PlaylistImportActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPlaylistImportBinding
     private lateinit var preferences: PreferencesHelper
+    private val viewModel: MainViewModel by viewModels()
 
     private val filePickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { handleFileSelection(it) }
-    }
-
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            // Permission granted, proceed with file picker
-            filePickerLauncher.launch("*/*")
-        } else {
-            showToast("需要存储权限来导入播放列表")
-        }
     }
 
     companion object {
@@ -58,7 +49,9 @@ class PlaylistImportActivity : AppCompatActivity() {
     private fun setupUI() {
         // File import button
         binding.fileImportButton.setOnClickListener {
-            checkAndRequestStoragePermission()
+            // ACTION_GET_CONTENT grants a read URI permission to this app, so
+            // no broad storage permission prompt is needed on Android 7 TV.
+            filePickerLauncher.launch("*/*")
         }
 
         // URL import button
@@ -78,6 +71,8 @@ class PlaylistImportActivity : AppCompatActivity() {
 
         // Progress indicator
         binding.progressBar.visibility = View.GONE
+        TvFocusStyler.apply(binding.root)
+        binding.fileImportButton.requestFocus()
     }
 
     private fun handleIntentData() {
@@ -89,61 +84,31 @@ class PlaylistImportActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkAndRequestStoragePermission() {
-        when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                filePickerLauncher.launch("*/*")
-            }
-            else -> {
-                permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
-        }
-    }
-
     private fun handleFileSelection(uri: Uri) {
-        try {
-            contentResolver.openInputStream(uri)?.use { inputStream ->
-                val content = inputStream.bufferedReader().use { it.readText() }
-
-                // Determine playlist type
-                val playlistType = when {
-                    content.trim().startsWith("#EXTM3U") -> {
-                        Playlist.PlaylistType.M3U
-                    }
-                    content.trim().startsWith("[") || content.trim().startsWith("{") -> {
-                        Playlist.PlaylistType.JSON
-                    }
-                    else -> {
-                        // Try to detect URL lists
-                        val urlPattern = Regex("https?://\\S+")
-                        if (urlPattern.containsMatchIn(content)) {
-                            Playlist.PlaylistType.TEXT_URLS
-                        } else {
-                            Playlist.PlaylistType.M3U // Default to M3U
+        val requestedName = binding.nameEditText.text.toString().trim()
+        lifecycleScope.launch {
+            try {
+                val playlist = withContext(Dispatchers.IO) {
+                    contentResolver.openInputStream(uri)?.use { inputStream ->
+                        val content = inputStream.bufferedReader().use { it.readText() }
+                        val playlistType = when {
+                            content.trim().startsWith("#EXTM3U") -> "m3u"
+                            content.trim().startsWith("[") || content.trim().startsWith("{") -> "json"
+                            Regex("https?://\\S+").containsMatchIn(content) -> "text"
+                            else -> "m3u"
                         }
-                    }
+                        val playlistName = requestedName.ifBlank { getFileName(uri) ?: "导入的播放列表" }
+                        Playlist.create(
+                            name = playlistName,
+                            url = content,
+                            type = playlistType
+                        )
+                    } ?: throw IllegalStateException("无法打开文件")
                 }
-
-                // Extract playlist name from file or content
-                val fileName = getFileName(uri)
-                val playlistName = binding.nameEditText.text.toString().takeIf { it.isNotBlank() }
-                    ?: fileName ?: "导入的播放列表"
-
-                // Create playlist
-                val playlist = Playlist.create(
-                    name = playlistName,
-                    url = content,
-                    type = playlistType
-                )
-
-                // Save playlist
                 savePlaylist(playlist)
+            } catch (e: Exception) {
+                showToast("读取文件失败: ${e.message}")
             }
-        } catch (e: Exception) {
-            showToast("读取文件失败: ${e.message}")
         }
     }
 
@@ -176,10 +141,6 @@ class PlaylistImportActivity : AppCompatActivity() {
                 binding.progressBar.visibility = View.VISIBLE
                 binding.urlImportButton.isEnabled = false
                 binding.fileImportButton.isEnabled = false
-
-                val viewModel: MainViewModel by lazy {
-                    androidx.activity.viewModels()
-                }
 
                 val playlistId = viewModel.addPlaylist(playlist)
                 if (playlistId > 0) {

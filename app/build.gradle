@@ -12,8 +12,8 @@ android {
         applicationId "com.tvplayer.app"
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 414
+        versionName "2.9.124"
     }
 
     buildTypes {
@@ -24,11 +24,12 @@ android {
     }
 
     buildFeatures {
-        viewBinding true
         dataBinding true
+        buildConfig true
     }
 
     compileOptions {
+        coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
@@ -39,6 +40,7 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
     implementation 'androidx.core:core-ktx:1.9.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
@@ -55,14 +57,20 @@ dependencies {
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
     implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
 
     // Glide
     implementation 'com.github.bumptech.glide:glide:4.14.2'
     kapt 'com.github.bumptech.glide:compiler:4.14.2'
 
-    // ExoPlayer
-    implementation 'com.google.android.exoplayer:exoplayer:2.18.7'
+    // Keep only the ExoPlayer modules used by this IPTV app. The umbrella
+    // artifact also packages DASH/RTSP/SmoothStreaming support, which adds
+    // size and startup work that this TV build does not use.
+    implementation 'com.google.android.exoplayer:exoplayer-core:2.18.7'
+    implementation 'com.google.android.exoplayer:exoplayer-hls:2.18.7'
+    implementation 'com.google.android.exoplayer:exoplayer-ui:2.18.7'
+    implementation 'com.google.android.exoplayer:extension-okhttp:2.18.7'
 
     // Leanback support for Android TV
     implementation 'androidx.leanback:leanback:1.0.0'
@@ -75,13 +83,13 @@ dependencies {
     implementation "androidx.room:room-ktx:2.6.1"
     kapt "androidx.room:room-compiler:2.6.1"
 
-    // WorkManager
-    implementation "androidx.work:work-runtime-ktx:2.9.0"
-
     // Kotlin serialization
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0'
+    implementation 'org.mozilla:rhino:1.7.15'
 
     // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1'
+
+    testImplementation 'junit:junit:4.13.2'
 }

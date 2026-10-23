@@ -1,15 +1,16 @@
 package com.tvplayer.app.data.repository
 
+import androidx.room.withTransaction
 import com.tvplayer.app.data.db.AppDatabase
 import com.tvplayer.app.data.model.Channel
 import com.tvplayer.app.data.model.Playlist
 import com.tvplayer.app.network.NetworkRepository
-import com.tvplayer.app.network.PlaylistParser
 import kotlinx.coroutines.flow.Flow
 
 class PlaylistRepository(
     private val networkRepository: NetworkRepository = NetworkRepository(),
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val logoRepository: LogoRepository? = null
 ) {
 
     suspend fun refreshPlaylist(playlist: Playlist): Result<Int> {
@@ -26,19 +27,48 @@ class PlaylistRepository(
             }
 
             // Parse playlist content
-            val channels = if (playlist.url!!.endsWith(".m3u", true) || playlist.url!!.endsWith(".m3u8", true)) {
-                PlaylistParser.parseM3U(content, playlist.id)
-            } else {
-                PlaylistParser.parseJson(content, playlist.id)
+            val parsedChannels = networkRepository.parsePlaylistContent(playlist, content)
+            // Refreshing a source replaces its rows. Keep user state when the
+            // same stream URL is still present, and keep favourites by logical
+            // name as a fallback for providers that rewrite stream URLs.
+            val previousChannels = database.channelDao()
+                .getChannelsByPlaylistList(playlist.id)
+            val previousByStreamKey = previousChannels
+                .associateBy(::streamKey)
+            val previousFavoriteKeys = previousChannels
+                .asSequence()
+                .filter { it.isFavorite }
+                .map { it.normalizedName }
+                .toSet()
+            val categorizedChannels = parsedChannels.map { channel ->
+                val previous = previousByStreamKey[streamKey(channel)]
+                channel.copy(
+                    isFavorite = channel.isFavorite ||
+                        previous?.isFavorite == true ||
+                        channel.normalizedName in previousFavoriteKeys,
+                    lastPlayed = previous?.lastPlayed ?: channel.lastPlayed,
+                    playCount = previous?.playCount ?: channel.playCount,
+                    isAvailable = previous?.isAvailable ?: channel.isAvailable,
+                    availabilityError = previous?.availabilityError ?: channel.availabilityError,
+                    responseTimeMs = previous?.responseTimeMs ?: channel.responseTimeMs,
+                    videoWidth = previous?.videoWidth ?: channel.videoWidth,
+                    videoHeight = previous?.videoHeight ?: channel.videoHeight,
+                    lastCheckedAt = previous?.lastCheckedAt ?: channel.lastCheckedAt
+                )
             }
+            val channels = logoRepository?.applyLogos(categorizedChannels) ?: categorizedChannels
 
-            // Update database
-            database.channelDao().deleteChannelsByPlaylist(playlist.id)
-            database.channelDao().insertChannels(channels)
-
-            // Update playlist metadata
-            database.playlistDao().markPlaylistAsUpdated(playlist.id, System.currentTimeMillis())
-            database.playlistDao().updateChannelCount(playlist.id, channels.size)
+            // Replace rows and metadata atomically. A process kill or storage
+            // error between DELETE and INSERT must not leave a source empty.
+            database.withTransaction {
+                database.channelDao().deleteChannelsByPlaylist(playlist.id)
+                database.channelDao().insertChannels(channels)
+                database.playlistDao().updateLastRefreshTime(
+                    playlist.id,
+                    System.currentTimeMillis()
+                )
+                database.playlistDao().updateChannelCount(playlist.id, channels.size)
+            }
 
             Result.success(channels.size)
         } catch (e: Exception) {
@@ -97,7 +127,12 @@ class PlaylistRepository(
     }
 
     suspend fun deletePlaylist(playlistId: Long) {
-        database.channelDao().deleteChannelsByPlaylist(playlistId)
-        database.playlistDao().deletePlaylistById(playlistId)
+        database.withTransaction {
+            database.channelDao().deleteChannelsByPlaylist(playlistId)
+            database.playlistDao().deletePlaylistById(playlistId)
+        }
     }
+
+    private fun streamKey(channel: Channel): String =
+        "${channel.normalizedName}\u0000${channel.url.trim()}"
 }

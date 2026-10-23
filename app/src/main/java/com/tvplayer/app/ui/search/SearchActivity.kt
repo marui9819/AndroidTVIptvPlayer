@@ -12,11 +12,12 @@ import com.tvplayer.app.databinding.ActivitySearchBinding
 import com.tvplayer.app.data.model.Channel
 import com.tvplayer.app.viewmodel.SearchViewModel
 import com.tvplayer.app.util.PlayerHelper
+import com.tvplayer.app.util.TvFocusStyler
 
 class SearchActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySearchBinding
-    private lateinit var viewModel: SearchViewModel
+    private val viewModel: SearchViewModel by viewModels()
     private lateinit var searchAdapter: SearchAdapter
 
     companion object {
@@ -27,8 +28,6 @@ class SearchActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySearchBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        viewModel by viewModels<SearchViewModel>()
 
         setupUI()
         setupObservers()
@@ -71,6 +70,7 @@ class SearchActivity : AppCompatActivity() {
         // Initial state
         binding.noResultsText.visibility = View.GONE
         binding.progressBar.visibility = View.GONE
+        TvFocusStyler.apply(binding.root)
     }
 
     private fun setupObservers() {
@@ -140,6 +140,17 @@ class SearchActivity : AppCompatActivity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (binding.searchEditText.hasFocus() && searchAdapter.itemCount > 0) {
+                    binding.searchEditText.clearFocus()
+                    binding.searchResultsRecyclerView.post {
+                        binding.searchResultsRecyclerView.getChildAt(0)?.requestFocus()
+                    }
+                    true
+                } else {
+                    super.onKeyDown(keyCode, event)
+                }
+            }
             KeyEvent.KEYCODE_BACK -> {
                 if (binding.searchEditText.hasFocus()) {
                     binding.searchEditText.clearFocus()

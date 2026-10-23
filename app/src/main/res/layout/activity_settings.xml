@@ -1,12 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/background_dark">
-
-    <FrameLayout
-        android:id="@+id/settings_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-</FrameLayout>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/settings_root"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="#0B121A" android:orientation="vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:padding="16dp" android:gravity="center_vertical" android:orientation="horizontal">
+        <Button android:id="@+id/back_to_player_button" android:layout_width="90dp" android:layout_height="52dp"
+            android:background="@drawable/tv_action_button_background"
+            android:text="‹ 返回" android:textColor="@color/tv_button_text" android:textSize="16sp" />
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:layout_marginStart="16dp" android:orientation="vertical">
+            <TextView android:id="@+id/settings_title" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="设置"
+                android:textColor="#F5FAFF" android:textSize="24sp" android:textStyle="bold" />
+            <TextView android:id="@+id/settings_subtitle" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                android:textColor="#9FB5C9" android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#243344" />
+    <LinearLayout android:id="@+id/settings_body" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
+        <ScrollView android:id="@+id/settings_navigation" android:layout_width="232dp"
+            android:layout_height="match_parent" android:fillViewport="true" android:background="#101D29">
+            <LinearLayout android:id="@+id/settings_sections" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:padding="12dp" android:orientation="vertical" />
+        </ScrollView>
+        <FrameLayout android:id="@+id/settings_container" android:layout_width="0dp"
+            android:layout_weight="1" android:layout_height="match_parent" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:padding="12dp" android:gravity="center_vertical" android:orientation="horizontal" android:background="#101D29">
+        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:text="所有设置即时保存" android:textColor="#9FB5C9" android:textSize="13sp" />
+        <Button android:id="@+id/save_settings_button" android:layout_width="120dp" android:layout_height="48dp"
+            android:background="@drawable/tv_action_button_background" android:text="完成"
+            android:textColor="@color/tv_button_text" android:textSize="16sp" />
+    </LinearLayout>
+</LinearLayout>

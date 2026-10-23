@@ -1,389 +1,79 @@
-# Android TV IPTV Player
+# AndroidTVIptvPlayer（5xingTV）
 
-[![Kotlin Syntax](https://img.shields.io/badge/Kotlin-Syntax%20Checked-brightgreen?style=flat-square&logo=kotlin)](https://kotlinlang.org/)
-[![Build Status](https://img.shields.io/badge/Build-Ready-blue?style=flat-square&logo=android)](https://developer.android.com/)
-[![Code Quality](https://img.shields.io/badge/Code%20Quality-High-green?style=flat-square&logo=codefactor)](https://www.codefactor.io/)
-[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+面向 Android TV 与 Android 手机的本地 IPTV 播放器。项目提供播放器、频道管理和设备适配代码，**不提供直播频道、直播流地址、播放列表或媒体内容**。
 
-一个功能完整的 Android TV IPTV 播放器应用，支持多种流媒体格式和播放列表管理。
+- 当前源码版本：`2.9.124`（`versionCode 414`）
+- 应用 ID：`com.tvplayer.app`
+- 最低系统：Android 5.0 / API 21；目标 API：34
 
-## 🚀 快速开始
+## 设计目标
 
-### 环境准备
-- ✅ **语法验证**: 所有 Kotlin 代码已通过语法检查
-- ✅ **构建就绪**: 项目配置完整，可直接构建
-- ✅ **代码质量**: 符合 Kotlin 最佳实践
+- 在电视上以遥控器为主进行频道浏览、播放控制、订阅管理和设置。
+- 为 Android 6/7、MStar 等较旧电视控制播放缓冲和后台工作，避免播放时额外任务争抢 CPU、内存和硬件解码器。
+- 同一播放器适配手机竖屏、全屏横屏和系统画中画模式。
+- 频道与订阅保存在本机；用户自行提供并管理有权使用的节目源。
 
-### 开发环境设置
+## 功能
+
+### 播放和频道
+
+- 导入本地或远程 M3U/M3U8、JSON 及文本播放列表，按分组浏览、搜索和播放频道。
+- 可合并订阅中的同名频道、切换可用备用来源，并设置播放失败后是否自动切换；该自动切换选项默认关闭。
+- 收藏频道、最近正常播放频道、频道备注（备注按原始播放 URL 绑定），以及不可用频道的手动重试。
+- 可选节目单（EPG）和台标；相关设置及刷新行为可由用户调整。
+- 播放诊断记录有数量和容量上限；诊断上报地址默认留空，只有用户自行配置后才会发送到该地址。
+
+播放器基于 ExoPlayer 2.18.7 / Android MediaCodec。支持的媒体格式和实际播放效果取决于源端返回的数据、设备系统解码器、网络和服务端策略。虎牙、斗鱼等站点适配可能随其接口变化而失效；本项目不保证第三方服务持续可用。
+
+### Android TV 与低配电视
+
+- 支持 D-pad、确认、菜单和返回等遥控器操作，并对焦点选中态做高对比处理。
+- 分类频道抽屉、快捷操作、订阅开关、收藏、手动重试、播放比例及设置均可用遥控器操作。
+- 设备配置会结合 Leanback 特征、Android API 级别及 MStar/6A938 机型特征识别旧电视。旧电视配置会缩减缓冲和并行后台工作，并降低 EPG、台标及批量测速对播放的影响。
+- 播放 Activity 放在独立进程，尽量隔离厂商 MediaCodec/OMX 异常；旧设备的解码能力和稳定性仍由固件及具体节目流决定。
+- 适配重点包括 Android 6/7 和 MStar 电视（例如 MStar 6A938）；这不是对所有旧电视型号的兼容保证。
+
+### Android 手机
+
+- 播放页支持竖屏普通模式、横屏全屏及系统画中画（PiP）。PiP 需要 Android 8.0/API 26 及系统支持。
+- 全屏、竖屏和小窗切换复用同一个播放器实例；频道名、时间和版本角标会按当前可见播放区域缩放，且可分别设置显示状态。
+- 可配置画面比例（默认“完整显示”）、音视频预检、缺音恢复、频道历史数量及定时关闭。
+- 定时关闭为一次性倒计时，到时停止并释放本应用播放器，不会关闭电视或其他应用。
+- 设置页面针对手机触摸和电视遥控器采用不同布局。
+
+### 节目源管理
+
+- 可新增、编辑、启用/停用、删除和刷新订阅；自动刷新间隔可配置，失败时有限重试并保留上次有效内容。
+- 电视可展示节目源管理二维码。手机与电视连接同一局域网后，可直接在手机浏览器编辑或新增节目源并同步回电视，**不需要电脑运行服务**。
+- 新安装不预置直播列表，也不会自动添加演示频道。首次使用请从“订阅管理”或“导入播放列表”添加自己的来源。
+- 升级时不会擅自清空设备中已有的本地订阅、频道、收藏或历史；如需移除旧版本添加的来源，请在订阅管理中确认后手动删除。
+
+节目源二维码只用于本地网络中的订阅管理。播放器不自建视频中转/转码服务器：媒体播放由设备直接请求用户配置的来源或其 CDN；站点适配器可能会访问相应服务商接口以解析播放地址。
+
+## 合法使用与内容说明
+
+本仓库及 APK 不包含直播播放列表、频道 URL、直播切片或可直接观看的节目内容。请只添加你拥有、获授权或当地法律允许访问的来源，并自行确认服务条款及版权许可。不要将未获授权的节目源上传到本仓库或转发给他人；若仅在许可范围内临时测试，请在测试结束后及时移除节目源及相关本地数据。项目不对用户添加的第三方内容负责。
+
+## 构建
+
+要求：JDK 17、Android SDK Platform 34。仓库自带 Gradle Wrapper；无需提交 `local.properties`、签名文件或设备数据。
+
 ```bash
-# 1. 克隆项目
-git clone <repository-url>
+git clone https://github.com/marui9819/AndroidTVIptvPlayer.git
 cd AndroidTVIptvPlayer
-
-# 2. 配置 Android SDK 路径
-echo "sdk.dir=$ANDROID_HOME" > local.properties
-
-# 3. 构建项目
-./gradlew build
-```
-
-## 功能特性
-
-### 📺 核心功能
-- **多格式支持**: HLS (HTTP Live Streaming), MP4, TS, RTMP
-- **播放器控制**: 播放/暂停、快进/快退、音量控制、频道切换
-- **硬件解码**: 支持硬件加速和软件解码切换
-- **画质选择**: 自动、1080p、720p、480p、360p 多种画质选择
-- **字幕支持**: 自动字幕加载和选择
-- **背景播放**: 支持后台音频播放
-
-### 📋 播放列表管理
-- **多种格式**: M3U, JSON, 纯文本 URL 列表
-- **本地导入**: 从文件系统导入播放列表
-- **远程加载**: 从 URL 加载远程播放列表
-- **自动刷新**: 定时自动更新播放列表内容
-- **分组管理**: 按频道分组整理和浏览
-- **收藏功能**: 收藏喜爱的频道
-- **历史记录**: 记录最近播放的频道
-
-### 🔍 搜索功能
-- **实时搜索**: 支持频道名称和分组搜索
-- **智能匹配**: 模糊匹配和高亮显示
-- **搜索历史**: 保存搜索历史记录
-- **搜索建议**: 提供热门搜索词建议
-
-### 🎨 TV 界面
-- **遥控器优化**: 完全支持 TV 遥控器操作
-- **焦点管理**: 完善的焦点导航系统
-- **Material Design**: 现代化的 TV UI 设计
-- **Logo 显示**: 支持 EPG 频道 Logo 显示
-- **频道详情**: 显示频道信息和节目指南
-
-### ⚙️ 高级功能
-- **WorkManager 后台任务**: 自动刷新播放列表
-- **Room 数据库**: 本地数据持久化
-- **网络优化**: 支持代理和自定义头部
-- **缓存管理**: HTTP 缓存和媒体缓存
-- **多语言**: 支持中文和其他语言
-
-## 技术架构
-
-### 🏗️ 架构模式
-- **MVVM**: Model-View-ViewModel 架构
-- **Repository**: 数据仓库模式
-- **Clean Architecture**: 分层架构设计
-
-### 🛠️ 技术栈
-- **Kotlin**: 主要开发语言
-- **AndroidX**: 现代 Android 组件
-- **ExoPlayer**: 媒体播放引擎
-- **Room**: 数据库框架
-- **Retrofit**: 网络请求框架
-- **Coroutines**: 异步编程
-- **LiveData**: 响应式数据
-- **ViewModel**: UI 数据管理
-- **WorkManager**: 后台任务管理
-- **Glide**: 图片加载库
-- **Material Components**: UI 组件库
-
-## 项目结构
-
-```
-app/
-├── src/main/java/com/tvplayer/app/
-│   ├── data/
-│   │   ├── model/          # 数据模型 (Channel, Playlist)
-│   │   └── db/             # 数据库 (DAO, Database)
-│   ├── network/            # 网络层 (ApiService, Retrofit)
-│   ├── repository/         # 数据仓库 (PlaylistRepository)
-│   ├── ui/                # UI 层
-│   │   ├── main/           # 主界面
-│   │   ├── player/         # 播放器界面
-│   │   ├── search/         # 搜索界面
-│   │   ├── settings/       # 设置界面
-│   │   └── playlist/       # 播放列表管理
-│   ├── viewmodel/         # ViewModel 层
-│   ├── workmanager/       # 后台任务
-│   ├── util/              # 工具类
-│   └── App.kt             # 应用程序入口
-├── src/main/res/          # 资源文件
-│   ├── layout/            # 布局文件
-│   ├── values/            # 值资源 (strings, colors, etc.)
-│   ├── drawable/          # 图片资源
-│   └── xml/               # XML 配置
-```
-
-## 📚 技术文档
-
-### 文档导航
-- 📖 [详细升级记录](docs/ANDROID_UPGRADE_LOG.md) - 完整的技术升级过程和故障排除
-- 🚀 [快速修复指南](docs/QUICK_FIX_GUIDE.md) - 常见问题快速解决方案
-- 🔍 [版本兼容性表](docs/ANDROID_UPGRADE_LOG.md#版本兼容性矩阵) - 各组件版本兼容性参考
-
-### 升级注意事项
-- ✅ **当前版本**: Gradle 8.4 + AGP 8.3.0 + Java 17
-- 🔧 **环境要求**: JDK 17+ (推荐使用 JDK 17)
-- 📱 **目标SDK**: Android 14 (API 34)
-- 🛠️ **构建工具**: Kotlin 1.9.0+
-
-## 系统要求
-
-- **最低版本**: Android 7.0 (API 24)
-- **目标版本**: Android 14 (API 34)
-- **架构要求**: ARM, ARM64, x86, x86_64
-- **内存要求**: 最低 1GB RAM，推荐 2GB+
-- **存储要求**: 100MB 安装空间 + 媒体缓存
-
-## 构建和部署
-
-### 环境要求
-- Android Studio Arctic Fox 或更高版本
-- Android SDK API 24-34
-- NDK (可选，用于原生开发)
-- Kotlin 1.9.10+
-
-### 构建步骤
-
-1. **克隆项目**
-```bash
-git clone <repository-url>
-cd AndroidTVIptvPlayer
-```
-
-2. **配置 SDK**
-```bash
-# 在 local.properties 中配置 SDK 路径
-sdk.dir=C:/Users/YourUser/AppData/Local/Android/Sdk
-```
-
-3. **同步 Gradle**
-```bash
-./gradlew build
-```
-
-4. **构建 APK**
-```bash
-# 调试版本
+./gradlew testDebugUnitTest
 ./gradlew assembleDebug
-
-# 发布版本
-./gradlew assembleRelease
 ```
 
-### 自动构建
+调试 APK 默认生成于：`app/build/outputs/apk/debug/app-debug.apk`。Windows 可使用 `gradlew.bat`。
 
-本项目已配置 GitHub Actions，支持自动构建：
-- **主分支推送**: 自动触发 APK 构建
-- **Pull Request**: 自动运行代码检查
-- **构建产物**: 自动发布到 GitHub Releases
-- **代码质量**: 自动语法检查和测试
+## 隐私与发布说明
 
-### 签名和发布
+- 频道、备注、收藏和播放历史保存在设备本地。
+- 本地调试日志服务仅供同一网络内查看有限容量的运行记录；不要把日志、二维码或播放地址公开分享，因为它们可能包含设备及观看信息。
+- 诊断上报默认不配置服务地址。提交代码前不要加入设备数据库、诊断 JSON、个人订阅配置、令牌、APK 或签名密钥。
+- 本仓库目前未声明代码开源许可证；公开可见不等同于授予复制、修改或再分发许可。
 
-1. **生成签名密钥**
-```bash
-keytool -genkey -v -keystore my-release-key.keystore \
-  -alias my-alias -keyalg RSA -keysize 2048 -validity 10000
-```
+## 技术栈
 
-2. **配置签名**
-在 `app/build.gradle` 中配置签名信息：
-```gradle
-android {
-    signingConfigs {
-        release {
-            storeFile file('my-release-key.keystore')
-            storePassword 'your-store-password'
-            keyAlias 'your-alias'
-            keyPassword 'your-key-password'
-        }
-    }
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
-}
-```
-
-3. **构建签名 APK**
-```bash
-./gradlew assembleRelease
-```
-
-## 配置说明
-
-### 应用配置
-在 `App.kt` 中配置应用程序初始化：
-```kotlin
-class App : Application() {
-    val applicationScope = CoroutineScope(SupervisorJob())
-    val database by lazy { AppDatabase.getDatabase(this) }
-    val preferences by lazy { PreferencesHelper(this) }
-
-    override fun onCreate() {
-        super.onCreate()
-        // 初始化组件
-        PlayerHelper.loadInitialPlaylist()
-        WorkManagerInitializer.schedulePlaylistRefresh(this)
-    }
-}
-```
-
-### 播放器配置
-在 `PlayerHelper.kt` 中配置播放器参数：
-```kotlin
-fun createPlayer(context: Context, useHardwareAcceleration: Boolean): ExoPlayer {
-    // 硬件加速配置
-    val trackSelector = DefaultTrackSelector(context, adaptiveTrackSelectionFactory)
-
-    // 缓冲配置
-    val loadControl = DefaultLoadControl.Builder()
-        .setBufferDurationsMs(
-            MIN_CACHE_SIZE.toInt(),
-            MAX_CACHE_SIZE.toInt(),
-            MIN_CACHE_SIZE.toInt(),
-            MAX_CACHE_SIZE.toInt()
-        ).build()
-
-    return ExoPlayer.Builder(context)
-        .setTrackSelector(trackSelector)
-        .setLoadControl(loadControl)
-        .build()
-}
-```
-
-### 网络配置
-在 `RetrofitClient.kt` 中配置网络参数：
-```kotlin
-fun createClient(preferences: PreferencesHelper): OkHttpClient {
-    return OkHttpClient.Builder()
-        .addInterceptor(HttpLoggingInterceptor().apply {
-            level = if (preferences.enableDebugLogging)
-                HttpLoggingInterceptor.Level.BODY
-                else HttpLoggingInterceptor.Level.NONE
-        })
-        .addInterceptor { chain ->
-            val request = chain.request().newBuilder()
-                .addHeader("User-Agent", preferences.userAgent)
-                .build()
-            chain.proceed(request)
-        }
-        .connectTimeout(preferences.networkTimeout, TimeUnit.SECONDS)
-        .readTimeout(preferences.networkTimeout, TimeUnit.SECONDS)
-        .build()
-}
-```
-
-## 使用说明
-
-### 基本操作
-1. **导入播放列表**:
-   - 点击"导入"按钮
-   - 选择从文件、URL 或二维码导入
-   - 支持M3U、JSON格式
-
-2. **浏览频道**:
-   - 使用遥控器方向键导航
-   - OK键选择频道
-   - Menu键打开设置
-
-3. **播放控制**:
-   - 播放/暂停: OK键
-   - 切换频道: 左右方向键
-   - 音量控制: 上下方向键
-   - 全屏切换: Menu键
-
-### 高级功能
-1. **收藏频道**: 长按频道列表项
-2. **搜索频道**: 搜索按钮，输入关键词
-3. **设置画质**: Menu键 -> 质量选择
-4. **字幕设置**: Menu键 -> 字幕选项
-
-## 开发指南
-
-### 添加新功能
-1. **数据模型**: 在 `data/model` 目录下添加新的实体类
-2. **数据库操作**: 在 `data/db` 目录下添加对应的 DAO
-3. **网络接口**: 在 `network` 目录下添加 API 接口
-4. **UI 界面**: 在 `ui` 目录下创建新的 Activity 或 Fragment
-5. **业务逻辑**: 在 `viewmodel` 目录下实现 ViewModel
-
-### 调试技巧
-1. **启用日志**: 在设置中开启调试日志
-2. **网络监控**: 使用 Charles 或 Fiddler 抓包
-3. **性能分析**: 使用 Android Profiler
-4. **数据库查看**: 使用 DB Browser for SQLite
-
-## 代码质量
-
-### 语法验证状态
-- ✅ **Kotlin 语法检查**: 已完成所有 22 个 Kotlin 文件的语法验证
-- ✅ **代码修复**: 修复了 ViewModel 初始化和 HTTP 头部配置问题
-- ✅ **编译兼容性**: 确认所有代码符合 Kotlin 1.9.10+ 标准
-- ✅ **代码风格**: 统一使用 Kotlin 最佳实践和惯用写法
-
-### 最近修复的问题
-- **PlayerActivity.kt:59**: 修复了 `viewModel: PlayerViewModel by viewModels()` 语法错误
-- **ApiService.kt:88**: 修复了 HTTP Connection 头部配置
-- **文件结构**: 确认所有文件正确闭合，无语法错误
-- **箭头操作符**: 验证所有 `->` 操作符使用正确，无 `=>` 错误
-
-## 常见问题
-
-### 构建问题
-- **Gradle 同步失败**: 检查网络和 SDK 版本
-- **依赖冲突**: 使用 `./gradlew dependencies` 查看依赖树
-- **签名问题**: 确认 keystore 文件和密码正确
-- **SDK 配置**: 确保 `local.properties` 中正确配置了 SDK 路径
-
-### 运行问题
-- **播放失败**: 检查网络连接和 URL 格式
-- **界面卡顿**: 检查内存使用和布局优化
-- **遥控器失灵**: 检查焦点管理和按键事件处理
-
-### 性能优化
-1. **内存优化**: 使用 Glide 图片加载和内存缓存
-2. **网络优化**: 启用 HTTP 缓存和 CDN 加速
-3. **播放优化**: 合理配置缓冲参数和硬件加速
-
-## 贡献指南
-
-1. **Fork 项目**
-2. **创建功能分支**: `git checkout -b feature/new-feature`
-3. **提交更改**: `git commit -m 'Add new feature'`
-4. **推送分支**: `git push origin feature/new-feature`
-5. **创建 Pull Request**
-
-## 许可证
-
-本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
-
-## 更新日志
-
-### v1.1.0 (最新版本)
-- 🔧 **语法修复**: 完成全面的 Kotlin 语法检查和修复
-- ✅ **代码质量**: 修复了 ViewModel 初始化和 HTTP 头部配置问题
-- 🛡️ **代码稳定性**: 确认所有 22 个 Kotlin 文件语法正确
-- 📦 **构建优化**: 改进了 Gradle 构建配置
-- 🎯 **TV 优化**: 增强了遥控器操作和焦点管理
-
-### v1.0.0
-- 🎉 初始版本发布
-- ✅ 完整的 IPTV 播放功能
-- ✅ TV 界面优化
-- ✅ 播放列表管理
-- ✅ 搜索功能
-- ✅ 后台自动刷新
-
-## 联系方式
-
-- **项目地址**: [GitHub Repository]
-- **问题反馈**: [Issues]
-- **邮件联系**: [Email]
-
----
-
-**注意**: 本项目仅供学习和研究使用，请遵守相关法律法规。
+Kotlin、AndroidX、Leanback、ExoPlayer 2.18.7、Room、Retrofit/OkHttp、Kotlin Coroutines、ZXing。
