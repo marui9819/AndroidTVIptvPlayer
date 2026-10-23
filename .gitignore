@@ -66,6 +66,8 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots
 *.png
+!app/src/main/res/drawable-nodpi/ic_app_icon.png
+!app/src/main/res/drawable-nodpi/ic_banner_art.png
 *.zip
 *.jpg
 
