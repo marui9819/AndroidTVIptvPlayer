@@ -204,3 +204,6 @@ owasp-dependency-check-suppressions.xml
 
 # Repo promo screenshots (site/README assets)
 !docs/screenshots/*.jpg
+
+# Claude Code local settings
+.claude/
