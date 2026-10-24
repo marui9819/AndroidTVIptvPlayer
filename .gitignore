@@ -169,7 +169,8 @@ gradle-cache/
 
 # Project specific
 fastlane/
-screenshots/
+/screenshots/
+marketing/
 mockups/
 diagrams/
 
@@ -200,3 +201,6 @@ dependency-check-report.xml
 
 # OWASP Dependency Check
 owasp-dependency-check-suppressions.xml
+
+# Repo promo screenshots (site/README assets)
+!docs/screenshots/*.jpg

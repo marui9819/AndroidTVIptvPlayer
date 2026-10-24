@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5xingTV — 面向低配置设备的高性能无广告 IPTV 播放器</title>
+<meta name="description" content="5xingTV：免费、无广告、开源（Apache-2.0）的本地 IPTV 播放器，为老电视、老盒子、旧手机深度优化。不内置任何直播源，请添加有权使用的节目源。">
+<style>
+:root{
+  --bg:#0b0f14;--bg2:#111823;--card:#151e2b;--card2:#1a2637;
+  --text:#e8eef5;--muted:#93a4b8;--accent:#3dd6b5;--accent2:#5aa9ff;
+  --border:#233246;--radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Roboto,Helvetica,Arial,sans-serif;line-height:1.7}
+a{color:var(--accent2);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header{position:sticky;top:0;z-index:50;background:rgba(11,15,20,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+nav{display:flex;align-items:center;gap:18px;height:56px;flex-wrap:wrap}
+nav .brand{font-weight:700;font-size:18px;color:var(--accent)}
+nav a{color:var(--muted);font-size:14px}
+nav a:hover{color:var(--text)}
+section{padding:56px 0;border-bottom:1px solid var(--border)}
+h2{font-size:28px;margin-bottom:8px}
+h2 .en{color:var(--muted);font-size:14px;font-weight:400;margin-left:10px}
+.sub{color:var(--muted);margin-bottom:28px}
+/* hero */
+.hero{text-align:center;padding:72px 0 48px;background:radial-gradient(ellipse at 50% -20%,#1b3a4b 0%,var(--bg) 60%)}
+.hero h1{font-size:44px;margin:14px 0 10px}
+.hero h1 span{color:var(--accent)}
+.hero p.tag{font-size:19px;color:var(--text);margin-bottom:6px}
+.hero p.desc{color:var(--muted);max-width:640px;margin:0 auto 26px}
+.badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:26px}
+.badge{background:var(--card);border:1px solid var(--border);border-radius:999px;padding:4px 14px;font-size:13px;color:var(--muted)}
+.badge b{color:var(--text)}
+.cta{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#04211a;font-weight:700;padding:13px 30px;border-radius:10px;font-size:16px}
+.cta:hover{background:#4ee6c4;text-decoration:none}
+.cta.ghost{background:transparent;color:var(--text);border:1px solid var(--border);margin-left:12px}
+.cta.ghost:hover{border-color:var(--accent);background:transparent}
+.hero-shots{display:flex;gap:14px;justify-content:center;margin-top:40px;flex-wrap:wrap}
+.hero-shots img{border-radius:10px;border:1px solid var(--border);max-width:100%}
+.hero-shots .s1{width:560px}.hero-shots .s2{width:200px}
+.warn{background:#2b2313;border:1px solid #66531d;color:#e8d49b;border-radius:10px;padding:12px 16px;font-size:14px;max-width:720px;margin:26px auto 0;text-align:left}
+/* features */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+.feat .ico{font-size:28px}
+.feat h3{font-size:17px;margin:8px 0 6px}
+.feat p{font-size:14px;color:var(--muted)}
+/* story */
+.story{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:center}
+.story .imgbox img{width:100%;border-radius:var(--radius);border:1px solid var(--border)}
+.story ul{list-style:none;margin-top:14px}
+.story li{padding:8px 0 8px 26px;position:relative;color:var(--muted);font-size:15px}
+.story li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+/* phone */
+.phone-sec{display:grid;grid-template-columns:1fr 1.2fr;gap:28px;align-items:center}
+.phone-sec .imgs{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.phone-sec .imgs img{border-radius:12px;border:1px solid var(--border);max-width:100%}
+/* gallery */
+.gal{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.gal figure{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.gal img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover}
+.gal figcaption{font-size:12px;color:var(--muted);padding:8px 10px;text-align:center}
+/* download */
+.dl{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;text-align:center}
+.dl ol{text-align:left;max-width:560px;margin:16px auto;color:var(--muted);font-size:15px}
+.dl ol li{margin:6px 0 6px 20px}
+.note{font-size:13px;color:var(--muted);margin-top:12px}
+/* sources table */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:600}
+/* faq */
+details{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+summary{padding:15px 18px;cursor:pointer;font-weight:600;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+summary::after{content:"+";color:var(--accent);font-size:18px}
+details[open] summary::after{content:"–"}
+details p{padding:0 18px 15px;color:var(--muted);font-size:14px}
+/* roadmap */
+.road{list-style:none}
+.road li{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px;font-size:15px;color:var(--muted)}
+.road li b{color:var(--text)}
+.tagchip{display:inline-block;font-size:11px;background:#2b2313;color:#e8d49b;border:1px solid #66531d;border-radius:4px;padding:1px 6px;margin-left:8px}
+/* about */
+.about p{color:var(--muted);font-size:15px;margin-bottom:12px}
+footer{padding:34px 0;color:var(--muted);font-size:13px;text-align:center}
+footer p{margin:4px 0}
+@media (max-width:860px){
+  .grid{grid-template-columns:1fr 1fr}
+  .story,.phone-sec{grid-template-columns:1fr}
+  .gal{grid-template-columns:1fr 1fr}
+  .hero h1{font-size:32px}
+  nav{gap:12px}
+  .cta.ghost{margin-left:0;margin-top:10px}
+}
+</style>
+</head>
+<body>
+<header><div class="wrap"><nav>
+  <span class="brand">5xingTV</span>
+  <a href="#features">特性</a><a href="#legacy">老设备</a><a href="#phone">手机端</a><a href="#gallery">截图</a><a href="#download">下载</a><a href="#faq">FAQ</a><a href="https://github.com/marui9819/AndroidTVIptvPlayer">GitHub</a>
+</nav></div></header>
+
+<section class="hero"><div class="wrap">
+  <p class="tag" style="letter-spacing:2px;color:var(--accent);font-size:14px">FREE · NO ADS · OPEN SOURCE</p>
+  <h1>5xing<span>TV</span></h1>
+  <p class="tag">面向低配置设备的高性能无广告 IPTV 播放器</p>
+  <p class="desc">不内置任何直播源的本地播放器，为老电视、老盒子、旧手机做了深度优化。免费、无广告、Apache-2.0 开源协议分发。</p>
+  <div class="badges">
+    <span class="badge">版本 <b>v2.9.124</b></span>
+    <span class="badge">协议 <b>Apache-2.0</b></span>
+    <span class="badge">平台 <b>Android 5.0+ TV / 手机</b></span>
+    <span class="badge">单元测试 <b>160</b></span>
+  </div>
+  <a class="cta" href="https://github.com/marui9819/AndroidTVIptvPlayer/releases">⬇ GitHub 下载 APK</a>
+  <a class="cta ghost" href="https://github.com/marui9819/AndroidTVIptvPlayer">查看源码</a>
+  <div class="warn">⚠️ 本应用不内置任何直播源、频道或节目内容。请添加你有权使用的节目源；演示截图中的频道均为公开测试流。</div>
+  <div class="hero-shots">
+    <img class="s1" src="screenshots/tv-playing.jpg" alt="5xingTV 播放画面" loading="lazy">
+    <img class="s2" src="screenshots/phone-portrait.jpg" alt="手机竖屏播放" loading="lazy">
+    <img class="s1" src="screenshots/tv-channel-drawer.jpg" alt="频道抽屉" loading="lazy">
+  </div>
+</div></section>
+
+<section id="features"><div class="wrap">
+  <h2>核心特性<span class="en">Features</span></h2>
+  <p class="sub">每一项都有代码依据，针对真实的使用场景打磨。</p>
+  <div class="grid">
+    <div class="feat"><div class="ico">🖥</div><h3>老旧设备深度适配</h3><p>针对 Android 6/7、MStar 6A938 等老平台优化缓冲、解码与后台负载；播放器独立进程隔离崩溃。</p></div>
+    <div class="feat"><div class="ico">🎮</div><h3>遥控器优先的完整 TV 操作</h3><p>D-pad 导航、频道抽屉、快捷操作面板、高对比焦点，全程不需要触摸。</p></div>
+    <div class="feat"><div class="ico">📱</div><h3>手机画中画（PiP）</h3><p>Android 8+ 小窗带播放/暂停按钮，回消息不中断直播；角标随窗口自适应缩放。</p></div>
+    <div class="feat"><div class="ico">🔗</div><h3>手机扫码管理节目源</h3><p>电视展示二维码，手机浏览器直接编辑节目源并同步回电视，无需电脑。</p></div>
+    <div class="feat"><div class="ico">🔀</div><h3>同名频道多源合并</h3><p>左右键切换备用来源；播放失败自动换台（默认关闭，用户可控）。</p></div>
+    <div class="feat"><div class="ico">🔒</div><h3>本地化隐私 + 免费</h3><p>数据全存本机，诊断上报默认留空；免费、无广告、Apache-2.0 开源。</p></div>
+  </div>
+</div></section>
+
+<section id="legacy"><div class="wrap">
+  <h2>老设备专题：吃灰电视的重生<span class="en">For Legacy Devices</span></h2>
+  <div class="story">
+    <div>
+      <p style="color:var(--muted)">家里那台老电视、吃灰的机顶盒、抽屉里的旧手机——硬件还没坏，却卡在一个塞满广告的系统里。5xingTV 为它们做了专门优化：把有限的 CPU 和内存留给播放本身。</p>
+      <ul>
+        <li>播放器独立进程，解码异常不拖垮应用</li>
+        <li>老机型自动降低 EPG / 台标 / 测速等后台负载</li>
+        <li>分级播放缓冲，减少老电视卡顿</li>
+        <li>定时关闭：到点只停应用，不关电视</li>
+        <li>频道备注、收藏、最近播放，给父母装台刚刚好</li>
+      </ul>
+      <p class="note">适配重点为 Android 6/7 与 MStar（如 6A938）平台，不构成对所有旧机型效果的承诺。</p>
+    </div>
+    <div class="imgbox"><img src="screenshots/tv-home.jpg" alt="TV 首页功能矩阵" loading="lazy"></div>
+  </div>
+</div></section>
+
+<section id="phone"><div class="wrap">
+  <h2>手机端：竖屏、全屏与画中画<span class="en">On Your Phone</span></h2>
+  <div class="phone-sec">
+    <div class="imgs">
+      <img src="screenshots/phone-portrait.jpg" width="220" alt="手机竖屏播放" loading="lazy">
+      <img src="screenshots/phone-pip.jpg" width="380" alt="手机画中画小窗" loading="lazy">
+    </div>
+    <div>
+      <p style="color:var(--muted)">旧手机别扔，装上 5xingTV 就是床头直播机。竖屏普通模式、横屏全屏、系统画中画三种形态复用同一个播放器实例；Android 8+ 的 PiP 小窗自带播放/暂停按钮，角标随窗口大小自适应缩放。</p>
+      <p style="color:var(--muted);margin-top:10px">电视和手机装同一个 APK：在电视上打开"手机编辑节目源"二维码，手机扫码即可在浏览器里增删节目源并同步回电视——给远程的父母改台单，也不用电脑。</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="gallery"><div class="wrap">
+  <h2>截图画廊<span class="en">Gallery</span></h2>
+  <p class="sub">全部界面截图来自 Android TV 14 与手机模拟器实机运行，演示频道均为公开测试流。</p>
+  <div class="gal">
+    <figure><img src="screenshots/tv-home.jpg" loading="lazy" alt="TV 首页"><figcaption>TV 首页功能矩阵</figcaption></figure>
+    <figure><img src="screenshots/tv-playing.jpg" loading="lazy" alt="全屏播放"><figcaption>全屏播放（公开测试流）</figcaption></figure>
+    <figure><img src="screenshots/tv-channel-drawer.jpg" loading="lazy" alt="频道抽屉"><figcaption>频道抽屉 · 频道列表</figcaption></figure>
+    <figure><img src="screenshots/tv-quick-actions.jpg" loading="lazy" alt="快捷操作"><figcaption>快捷操作面板</figcaption></figure>
+    <figure><img src="screenshots/tv-qr-edit.jpg" loading="lazy" alt="扫码管理"><figcaption>手机扫码管理节目源</figcaption></figure>
+    <figure><img src="screenshots/tv-settings.jpg" loading="lazy" alt="设置"><figcaption>播放与声音设置</figcaption></figure>
+    <figure><img src="screenshots/tv-sleep-timer.jpg" loading="lazy" alt="定时关闭"><figcaption>定时关闭设置</figcaption></figure>
+    <figure><img src="screenshots/tv-player-badge.jpg" loading="lazy" alt="角标"><figcaption>频道信息条与角标</figcaption></figure>
+    <figure><img src="screenshots/phone-portrait.jpg" loading="lazy" alt="手机竖屏"><figcaption>手机竖屏播放</figcaption></figure>
+    <figure><img src="screenshots/phone-landscape.jpg" loading="lazy" alt="手机横屏"><figcaption>手机横屏全屏</figcaption></figure>
+    <figure><img src="screenshots/phone-pip.jpg" loading="lazy" alt="画中画"><figcaption>手机画中画小窗</figcaption></figure>
+    <figure><img src="screenshots/phone-channels.jpg" loading="lazy" alt="频道列表"><figcaption>手机频道列表</figcaption></figure>
+  </div>
+</div></section>
+
+<section id="download"><div class="wrap">
+  <h2>下载与安装<span class="en">Download</span></h2>
+  <div class="dl">
+    <a class="cta" href="https://github.com/marui9819/AndroidTVIptvPlayer/releases/download/v2.9.124/5xingTV-v2.9.124-debug.apk">⬇ 直接下载 2.9.124 APK</a>
+    <a class="cta ghost" href="https://github.com/marui9819/AndroidTVIptvPlayer/releases">全部版本</a>
+    <ol>
+      <li>下载最新的 <b>app-debug.apk</b>；</li>
+      <li>通过 U 盘、文件管理器或 <code>adb install -r app-debug.apk</code> 安装；</li>
+      <li>安装时允许"未知来源应用"；</li>
+      <li>当前发布为 Debug 签名：与其他签名的同包名应用冲突时，需先卸载旧版。</li>
+    </ol>
+    <p class="note">最低 Android 5.0（API 21）· 画中画需 Android 8.0+ · Android TV / 盒子 / 手机均可</p>
+  </div>
+</div></section>
+
+<section id="sources"><div class="wrap">
+  <h2>社区节目源推荐<span class="en">Community Playlists</span></h2>
+  <p class="sub" style="color:#e8d49b">以下为社区维护的第三方项目，仅作链接推荐，与本项目无关。使用请自行确认授权与合规。</p>
+  <table>
+    <tr><th>项目</th><th>说明</th></tr>
+    <tr><td><a href="https://github.com/iptv-org/iptv" rel="noopener">iptv-org/iptv</a></td><td>全球公开频道收录项目，按国家/地区/语言分类，社区规模最大</td></tr>
+    <tr><td><a href="https://github.com/vbskycn/iptv" rel="noopener">vbskycn/iptv</a></td><td>国内常用直播源每日更新，支持 IPv4/IPv6 双栈访问</td></tr>
+    <tr><td><a href="https://github.com/YanG-1989/m3u" rel="noopener">YanG-1989/m3u</a></td><td>直播源聚合仓库，持续维护更新</td></tr>
+    <tr><td><a href="https://github.com/Guovin/iptv-api" rel="noopener">Guovin/iptv-api</a></td><td>直播源自动采集/测速/更新工具，可自建专属播放列表</td></tr>
+  </table>
+</div></section>
+
+<section id="faq"><div class="wrap">
+  <h2>常见问题<span class="en">FAQ</span></h2>
+  <details><summary>为什么打开后没有任何频道？</summary><p>5xingTV 是"空"播放器，不内置任何直播源。请进入"订阅管理"或"导入播放列表"，添加你有权使用的 M3U/M3U8 地址后再观看。</p></details>
+  <details><summary>支持哪些设备？</summary><p>Android 5.0 及以上的 Android TV、机顶盒、手机均可。针对 Android 6/7 与 MStar 6A938 等老平台有专门优化；画中画需要 Android 8.0+。</p></details>
+  <details><summary>安装时提示"签名冲突"怎么办？</summary><p>当前发布为 Debug 签名 APK。若设备上已有其他签名的同包名应用，请先卸载旧版，再安装本应用。</p></details>
+  <details><summary>怎么添加节目源？</summary><p>三种方式：① 电视上"导入播放列表"输入 URL；② 从本地文件导入 M3U/JSON；③ 电视打开"手机扫码编辑"二维码，手机浏览器里编辑并同步——全程不需要电脑。</p></details>
+  <details><summary>会收集我的数据吗？</summary><p>频道、备注、收藏、播放历史全部保存在设备本地；诊断上报默认不配置服务地址，只有你自行填写后才会启用。</p></details>
+  <details><summary>真的没有广告吗？</summary><p>没有开屏、插页或悬浮广告，也不会推送营销消息。项目以 Apache-2.0 开源协议分发，源码可查。</p></details>
+  <details><summary>老电视卡顿有救吗？</summary><p>针对老平台做了播放缓冲分级与后台负载收敛，EPG/台标/测速让位于播放；播放器还运行在独立进程中，解码异常不影响主界面。实际效果因机型与节目流而异。</p></details>
+  <details><summary>左右键是干什么的？</summary><p>同名频道多源合并后，左右键在备用来源之间切换；播放失败自动换台功能默认关闭，可在设置中开启。</p></details>
+  <details><summary>定时关闭会关掉电视吗？</summary><p>不会。定时关闭是一次性倒计时，到点只停止并退出本应用的播放，不会关闭电视或其他应用。</p></details>
+  <details><summary>遇到问题去哪反馈？</summary><p>欢迎提交 <a href="https://github.com/marui9819/AndroidTVIptvPlayer/issues" rel="noopener">GitHub Issues</a>，附上设备型号、系统版本与问题描述，会尽快跟进。</p></details>
+</div></section>
+
+<section id="roadmap"><div class="wrap">
+  <h2>路线图<span class="en">Roadmap</span></h2>
+  <ul class="road">
+    <li><b>EPG 节目单管理增强</b><span class="tagchip">规划中</span>可视化编辑与更灵活的刷新策略</li>
+    <li><b>双指缩放手势</b><span class="tagchip">规划中</span>当前提供三档画面比例切换</li>
+    <li><b>平板与大屏适配优化</b><span class="tagchip">规划中</span>针对平板布局的专项优化</li>
+    <li><b>频道分组自定义排序</b><span class="tagchip">规划中</span>按个人习惯组织频道</li>
+  </ul>
+</div></section>
+
+<section id="about"><div class="wrap">
+  <h2>关于与协议<span class="en">About &amp; License</span></h2>
+  <div class="about">
+    <p>5xingTV（AndroidTVIptvPlayer）© 2026 marui9819，基于 Apache License 2.0 分发。再分发或二次开发须保留 NOTICE 声明并注明出处；如经修改，须标注已作修改。</p>
+    <p>本应用不内置任何直播源；请只添加你拥有、获授权或当地法律允许访问的来源。虎牙、斗鱼等站点适配可能随其接口变化而失效，本项目不保证第三方服务持续可用，也不对用户添加的第三方内容负责。</p>
+    <p>反馈与讨论：<a href="https://github.com/marui9819/AndroidTVIptvPlayer/issues" rel="noopener">GitHub Issues</a> · 源码：<a href="https://github.com/marui9819/AndroidTVIptvPlayer" rel="noopener">GitHub 仓库</a></p>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <p>5xingTV · 面向低配置设备的高性能无广告 IPTV 播放器</p>
+  <p>Apache-2.0 · <a href="https://github.com/marui9819/AndroidTVIptvPlayer">GitHub</a> · <a href="https://github.com/marui9819/AndroidTVIptvPlayer/blob/main/README_EN.md">English README</a> · 页面演示频道均为公开测试流，不代表任何真实频道</p>
+</div></footer>
+</body>
+</html>
