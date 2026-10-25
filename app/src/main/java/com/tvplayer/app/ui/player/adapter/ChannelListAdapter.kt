@@ -2,6 +2,9 @@ package com.tvplayer.app.ui.player.adapter
 
 import android.graphics.Color
 import android.graphics.Paint
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.View
@@ -14,6 +17,14 @@ import com.tvplayer.app.data.repository.MergedChannel
 import com.tvplayer.app.databinding.ItemChannelListBinding
 import com.tvplayer.app.util.TvSelectionBackground
 
+data class ChannelListDisplayOptions(
+    val showIcons: Boolean = false,
+    val showCategoryName: Boolean = false,
+    val showSourceCount: Boolean = true,
+    val showPreferredSourceName: Boolean = false,
+    val showProbeStatus: Boolean = true
+)
+
 class ChannelListAdapter(
     private val onChannelSelected: (MergedChannel) -> Unit
 ) : RecyclerView.Adapter<ChannelListAdapter.ChannelViewHolder>() {
@@ -23,6 +34,7 @@ class ChannelListAdapter(
     private var currentChannelKey: String = ""
     private var paneFocused: Boolean = true
     private var aliases: Map<String, String> = emptyMap()
+    private var displayOptions = ChannelListDisplayOptions()
 
     fun setAliases(value: Map<String, String>) {
         if (aliases == value) return
@@ -69,6 +81,12 @@ class ChannelListAdapter(
         notifyChangedForKey(selectedChannelKey)
     }
 
+    fun setDisplayOptions(options: ChannelListDisplayOptions) {
+        if (displayOptions == options) return
+        displayOptions = options
+        if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
+    }
+
     private fun notifyChangedForKey(key: String) {
         if (key.isBlank()) return
         val index = channels.indexOfFirst { it.key == key }
@@ -93,6 +111,7 @@ class ChannelListAdapter(
             isSelected = channels[position].key == selectedChannelKey,
             isCurrent = channels[position].key == currentChannelKey,
             paneFocused = paneFocused,
+            displayOptions = displayOptions,
             displayName = channels[position].sources.asSequence()
                 .mapNotNull { aliases[it.channel.url.trim()] }.firstOrNull() ?: channels[position].name
         )
@@ -111,23 +130,17 @@ class ChannelListAdapter(
             isSelected: Boolean,
             isCurrent: Boolean,
             paneFocused: Boolean,
+            displayOptions: ChannelListDisplayOptions,
             displayName: String
         ) {
             binding.channelName.text = displayName
-            binding.channelGroup.text = buildString {
-                append(channel.groupName)
-                append(" · ")
-                append(channel.sources.size)
-                append("源")
-            }
             binding.channelNumber.text = "${position + 1}"
-            binding.channelSource.text = channel.preferredSource?.playlistName ?: "未知来源"
             val preferredSource = channel.preferredSource
             val probeNotStarted = preferredSource?.lastCheckedAt == 0L
             val probeStale = preferredSource?.lastCheckedAt?.let { checkedAt ->
                 checkedAt > 0L && System.currentTimeMillis() - checkedAt >= PROBE_STALE_AFTER_MS
             } == true
-            binding.channelState.text = if (channel.isAvailable) {
+            val probeStatus = if (channel.isAvailable) {
                 val timedOutSources = channel.sources.count {
                     !it.isAvailable && isTimeoutError(it.errorText)
                 }
@@ -148,16 +161,60 @@ class ChannelListAdapter(
                     else -> "暂不可访问"
                 }
             }
+            val statusColor = when {
+                probeNotStarted || probeStale -> Color.parseColor("#FFFFC107")
+                channel.isAvailable -> Color.parseColor("#FF7CFC00")
+                else -> Color.parseColor("#FFFF6B6B")
+            }
+            val details = mutableListOf<Pair<String, Int?>>()
+            if (displayOptions.showCategoryName && channel.groupName.isNotBlank()) {
+                details += channel.groupName to null
+            }
+            if (displayOptions.showSourceCount) {
+                details += "${channel.sources.size}个源" to null
+            }
+            if (displayOptions.showPreferredSourceName) {
+                details += (preferredSource?.playlistName?.takeIf(String::isNotBlank) ?: "未知来源") to null
+            }
+            if (displayOptions.showProbeStatus) {
+                details += probeStatus to statusColor
+            }
+            val detailText = SpannableStringBuilder()
+            details.forEachIndexed { index, (text, color) ->
+                if (index > 0) detailText.append(" · ")
+                val start = detailText.length
+                detailText.append(text)
+                if (color != null) {
+                    detailText.setSpan(
+                        ForegroundColorSpan(color), start, detailText.length,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+            }
+            binding.channelGroup.text = detailText
+            binding.channelGroup.visibility = if (details.isEmpty()) View.GONE else View.VISIBLE
+            // Keep the two-line layout contract even for recycled view holders
+            // inflated from older resource configurations.
+            binding.channelSource.visibility = View.GONE
+            binding.channelState.visibility = View.GONE
 
-            channel.logo?.let { logoUrl ->
-                Glide.with(binding.root.context)
-                    .load(logoUrl)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .placeholder(R.drawable.ic_channel_placeholder)
-                    .error(R.drawable.ic_channel_placeholder)
-                    .dontAnimate()
-                    .into(binding.channelLogo)
-            } ?: binding.channelLogo.setImageResource(R.drawable.ic_channel_placeholder)
+            val iconVisibility = if (displayOptions.showIcons) View.VISIBLE else View.GONE
+            binding.channelLogo.visibility = iconVisibility
+            binding.favoriteIcon.visibility = iconVisibility
+            binding.availabilityIndicator.visibility = iconVisibility
+            if (displayOptions.showIcons) {
+                channel.logo?.let { logoUrl ->
+                    Glide.with(binding.root.context)
+                        .load(logoUrl)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .placeholder(R.drawable.ic_channel_placeholder)
+                        .error(R.drawable.ic_channel_placeholder)
+                        .dontAnimate()
+                        .into(binding.channelLogo)
+                } ?: binding.channelLogo.setImageResource(R.drawable.ic_channel_placeholder)
+            } else {
+                Glide.with(binding.root.context).clear(binding.channelLogo)
+            }
 
             binding.favoriteIcon.setImageResource(
                 if (channel.isFavorite) android.R.drawable.btn_star_big_on
@@ -206,14 +263,6 @@ class ChannelListAdapter(
                 binding.channelName.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             }
             binding.channelGroup.setTextColor(secondaryColor)
-            binding.channelSource.setTextColor(secondaryColor)
-            binding.channelState.setTextColor(
-                when {
-                    probeNotStarted || probeStale -> Color.parseColor("#FFC107")
-                    channel.isAvailable -> Color.parseColor("#7CFC00")
-                    else -> Color.parseColor("#FF6B6B")
-                }
-            )
             binding.channelNumber.setTextColor(
                 if (isSelected && paneFocused) Color.parseColor("#FF071923") else Color.WHITE
             )

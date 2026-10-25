@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
+import com.tvplayer.app.App
 
 /** One dormant callback, not a polling service; installed in launcher AND playback processes. */
 internal class AppSleepTimer(private val app: Application) : Application.ActivityLifecycleCallbacks {
@@ -30,8 +31,8 @@ internal class AppSleepTimer(private val app: Application) : Application.Activit
                         expiry?.let(handler::removeCallbacks)
                         activities.toList().forEach { activity ->
                             if (!activity.isFinishing && !activity.isDestroyed) {
-                                activity.finishAndRemoveTask()
-                                (activity as? TimedAppExitParticipant)?.stopForTimedExit()
+                                (app as? App)?.requestExit(activity, sleepTimerExpired = true)
+                                    ?: activity.finishAndRemoveTask()
                             }
                         }
                     }
@@ -62,8 +63,4 @@ internal class AppSleepTimer(private val app: Application) : Application.Activit
     override fun onActivityPaused(activity: Activity) = Unit
     override fun onActivityStopped(activity: Activity) = Unit
     override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) = Unit
-}
-
-internal interface TimedAppExitParticipant {
-    fun stopForTimedExit()
 }

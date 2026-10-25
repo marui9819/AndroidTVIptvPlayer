@@ -18,6 +18,12 @@
             android:defaultValue="true" />
 
         <SwitchPreferenceCompat
+            android:key="boot_start_enabled"
+            android:title="电视开机后启动本应用"
+            android:summary="仅电视设备可用；开启后，电视完成开机时自动打开本应用"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
             android:key="auto_failover_enabled"
             android:title="播放失败后自动切换来源"
             android:summary="关闭：持续重试当前来源；开启：重试失败后切换其他来源或频道（默认关闭）"
@@ -54,6 +60,22 @@
             android:title="显示字幕"
             android:summary="默认显示可用字幕"
             android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="show_epg_on_low_end_tv"
+            android:title="低配电视显示节目单"
+            android:summary="默认关闭以减轻设备负载；开启后，低配电视会按刷新间隔补充节目单，并显示当前与后续节目"
+            android:defaultValue="false" />
+
+        <SeekBarPreference
+            android:key="epg_schedule_count_slider"
+            android:title="后续节目显示数量"
+            android:summary="频道抽屉中正在播之后显示的节目档数；使用左右键调整"
+            android:defaultValue="5"
+            android:max="20"
+            app:min="5"
+            app:seekBarIncrement="1"
+            app:showSeekBarValue="true" />
 
     </PreferenceCategory>
 
@@ -94,9 +116,53 @@
 
         <SwitchPreferenceCompat
             android:key="show_channel_logos"
-            android:title="显示频道Logo"
-            android:summary="在列表中显示频道Logo"
+            android:title="频道列表显示图标"
+            android:summary="显示台标、收藏标识和可用状态图标"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="show_channel_group_name"
+            android:title="显示频道分类名"
+            android:summary="在频道名称下方显示分类名称"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="show_channel_source_count"
+            android:title="显示合并源数量"
+            android:summary="显示该频道合并了多少个视频源"
             android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="show_preferred_source_name"
+            android:title="显示优先视频源名称"
+            android:summary="显示当前优先使用的视频源名称"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="show_channel_probe_status"
+            android:title="显示检测状态或响应时间"
+            android:summary="显示待检测、可用、不可用或测速响应时间"
+            android:defaultValue="true" />
+
+        <SeekBarPreference
+            android:key="channel_drawer_group_width"
+            android:title="频道分类栏宽度"
+            android:summary="250dp；每步 5dp，范围 150–400dp"
+            android:defaultValue="250"
+            android:max="400"
+            app:min="150"
+            app:seekBarIncrement="5"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            android:key="channel_drawer_list_width"
+            android:title="频道列表栏宽度"
+            android:summary="350dp；每步 5dp，范围 250–600dp"
+            android:defaultValue="350"
+            android:max="600"
+            app:min="250"
+            app:seekBarIncrement="5"
+            app:showSeekBarValue="true" />
 
         <SwitchPreferenceCompat
             android:key="show_current_channel_name"

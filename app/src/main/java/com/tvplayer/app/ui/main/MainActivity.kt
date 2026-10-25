@@ -29,6 +29,7 @@ import androidx.leanback.widget.OnItemViewClickedListener
 import androidx.leanback.widget.Presenter
 import androidx.leanback.widget.RowPresenter
 import com.tvplayer.app.R
+import com.tvplayer.app.App
 import com.tvplayer.app.data.model.Channel
 import com.tvplayer.app.data.model.Playlist
 import com.tvplayer.app.databinding.ActivityMainBinding
@@ -101,6 +102,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        App.instance.onAppActivityCreated()
         hasAutoStartedPlayback = savedInstanceState?.getBoolean("playback_dispatched") ?: false
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -412,7 +414,7 @@ class MainActivity : FragmentActivity() {
         val dialog = MaterialAlertDialogBuilder(dialogContext)
             .setTitle("退出应用")
             .setMessage("确定要退出电视直播吗？")
-            .setPositiveButton("退出") { _, _ -> finishAffinity() }
+            .setPositiveButton("退出") { _, _ -> App.instance.requestExit(this) }
             .setNegativeButton("取消", null)
             .create()
         TvDialogStyler.apply(dialog)

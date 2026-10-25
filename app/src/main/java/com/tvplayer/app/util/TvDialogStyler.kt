@@ -9,7 +9,12 @@ import com.tvplayer.app.R
 /** Makes AlertDialog actions readable and focusable with a TV remote. */
 object TvDialogStyler {
 
-    fun apply(dialog: AlertDialog, initialButton: Int = DialogInterface.BUTTON_NEGATIVE) {
+    fun apply(
+        dialog: AlertDialog,
+        initialButton: Int = DialogInterface.BUTTON_NEGATIVE,
+        styleFocusableContent: Boolean = true,
+        focusInitialButton: Boolean = true
+    ) {
         dialog.setOnShowListener {
             dialog.window?.setBackgroundDrawableResource(R.color.background_secondary)
             val alertTitleId = dialog.context.resources.getIdentifier(
@@ -24,7 +29,7 @@ object TvDialogStyler {
                 ContextCompat.getColor(dialog.context, R.color.text_primary)
             )
             val root = dialog.window?.decorView ?: return@setOnShowListener
-            TvFocusStyler.apply(root)
+            if (styleFocusableContent) TvFocusStyler.apply(root)
             listOf(
                 dialog.getButton(DialogInterface.BUTTON_POSITIVE),
                 dialog.getButton(DialogInterface.BUTTON_NEGATIVE),
@@ -33,11 +38,16 @@ object TvDialogStyler {
                 button?.apply {
                     minHeight = 52
                     textSize = 16f
+                    // Choice dialogs opt out of recursive styling so their
+                    // checked rows remain untouched; style action buttons alone.
+                    if (!styleFocusableContent) TvFocusStyler.apply(this)
                 }
             }
-            dialog.getButton(initialButton)?.let { button ->
-                if (button.isShown && button.isEnabled) {
-                    button.requestFocus()
+            if (focusInitialButton) {
+                dialog.getButton(initialButton)?.let { button ->
+                    if (button.isShown && button.isEnabled) {
+                        button.requestFocus()
+                    }
                 }
             }
         }

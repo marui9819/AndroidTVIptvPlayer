@@ -29,10 +29,14 @@ class PreferencesHelper(private val context: Context) {
         const val DOUYU_SCHEME_ENTRY = "douyu_entry"
 
         private val IMPORTABLE_KEYS = setOf(
-            "auto_load_enabled", "auto_play_enabled", "auto_failover_enabled", "hw_acceleration",
-            "enable_subtitles", "video_quality", "playback_speed",
+            "auto_load_enabled", "auto_play_enabled", "boot_start_enabled", "auto_failover_enabled", "hw_acceleration",
+            "enable_subtitles", "video_quality", "playback_speed", "show_epg_on_low_end_tv",
+            "epg_schedule_count", "epg_schedule_count_slider", "channel_drawer_group_width",
+            "channel_drawer_list_width",
             "av_precheck_enabled", "missing_audio_recovery_enabled",
-            "ui_theme", "show_channel_numbers", "show_channel_logos", "show_current_channel_name",
+            "ui_theme", "show_channel_numbers", "show_channel_logos", "show_channel_group_name",
+            "show_channel_source_count", "show_preferred_source_name", "show_channel_probe_status",
+            "show_current_channel_name",
             "show_unavailable_channels", "show_empty_channel_groups",
             "use_proxy", "proxy_url", "connection_timeout",
             "default_playlist_url", "huya_playback_scheme", "douyu_playback_scheme",
@@ -45,7 +49,8 @@ class PreferencesHelper(private val context: Context) {
             "channel_probe_delay_ms", "channel_probe_timeout_ms"
         )
         private val IMPORTABLE_INT_KEYS = setOf(
-            "connection_timeout", "channel_probe_thread_count"
+            "connection_timeout", "channel_probe_thread_count", "epg_schedule_count_slider",
+            "channel_drawer_group_width", "channel_drawer_list_width"
         )
         private val IMPORTABLE_LONG_KEYS = setOf(
             "min_cache_size", "max_cache_size", "epg_refresh_interval",
@@ -64,6 +69,17 @@ class PreferencesHelper(private val context: Context) {
 
     private val prefs: SharedPreferences = context.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE)
 
+    init {
+        // Older releases stored this setting as a String under epg_schedule_count.
+        // Use a new integer key so SeekBarPreference never reads a String as an Int.
+        if (!prefs.contains("epg_schedule_count_slider")) {
+            val legacyValue = runCatching {
+                prefs.getString("epg_schedule_count", null)?.toIntOrNull()
+            }.getOrNull()
+            prefs.edit().putInt("epg_schedule_count_slider", (legacyValue ?: 5).coerceIn(5, 20)).apply()
+        }
+    }
+
     // App Settings
     var isFirstLaunch: Boolean
         get() = prefs.getBoolean("first_launch", true)
@@ -76,6 +92,10 @@ class PreferencesHelper(private val context: Context) {
     var autoPlayEnabled: Boolean
         get() = prefs.getBoolean("auto_play_enabled", true)
         set(value) = prefs.edit().putBoolean("auto_play_enabled", value).apply()
+
+    var bootStartEnabled: Boolean
+        get() = prefs.getBoolean("boot_start_enabled", false)
+        set(value) = prefs.edit().putBoolean("boot_start_enabled", value).apply()
 
     /**
      * Whether a failed live source may be replaced automatically.
@@ -105,6 +125,18 @@ class PreferencesHelper(private val context: Context) {
         get() = prefs.getFloat("playback_speed", Constants.DefaultSettings.DEFAULT_PLAYBACK_SPEED)
         set(value) = prefs.edit().putFloat("playback_speed", value).apply()
 
+    var epgScheduleCount: Int
+        get() = prefs.getInt("epg_schedule_count_slider", 5).coerceIn(5, 20)
+        set(value) = prefs.edit().putInt("epg_schedule_count_slider", value.coerceIn(5, 20)).apply()
+
+    var channelDrawerGroupWidthDp: Int
+        get() = prefs.getInt("channel_drawer_group_width", 250).coerceIn(150, 400)
+        set(value) = prefs.edit().putInt("channel_drawer_group_width", value.coerceIn(150, 400)).apply()
+
+    var channelDrawerListWidthDp: Int
+        get() = prefs.getInt("channel_drawer_list_width", 350).coerceIn(250, 600)
+        set(value) = prefs.edit().putInt("channel_drawer_list_width", value.coerceIn(250, 600)).apply()
+
     var defaultPlaylistId: Long
         get() = prefs.getLong("default_playlist_id", -1L)
         set(value) = prefs.edit().putLong("default_playlist_id", value).apply()
@@ -131,8 +163,24 @@ class PreferencesHelper(private val context: Context) {
         set(value) = prefs.edit().putBoolean("show_channel_numbers", value).apply()
 
     var showChannelLogos: Boolean
-        get() = prefs.getBoolean("show_channel_logos", true)
+        get() = prefs.getBoolean("show_channel_logos", false)
         set(value) = prefs.edit().putBoolean("show_channel_logos", value).apply()
+
+    var showChannelGroupName: Boolean
+        get() = prefs.getBoolean("show_channel_group_name", false)
+        set(value) = prefs.edit().putBoolean("show_channel_group_name", value).apply()
+
+    var showChannelSourceCount: Boolean
+        get() = prefs.getBoolean("show_channel_source_count", true)
+        set(value) = prefs.edit().putBoolean("show_channel_source_count", value).apply()
+
+    var showPreferredSourceName: Boolean
+        get() = prefs.getBoolean("show_preferred_source_name", false)
+        set(value) = prefs.edit().putBoolean("show_preferred_source_name", value).apply()
+
+    var showChannelProbeStatus: Boolean
+        get() = prefs.getBoolean("show_channel_probe_status", true)
+        set(value) = prefs.edit().putBoolean("show_channel_probe_status", value).apply()
 
     var showCurrentChannelName: Boolean
         get() = prefs.getBoolean("show_current_channel_name", true)
@@ -145,6 +193,11 @@ class PreferencesHelper(private val context: Context) {
     var showEmptyChannelGroups: Boolean
         get() = prefs.getBoolean("show_empty_channel_groups", false)
         set(value) = prefs.edit().putBoolean("show_empty_channel_groups", value).apply()
+
+    /** Opt in to parsing and showing cached EPG data on devices using the low-end TV profile. */
+    var showEpgOnLowEndTv: Boolean
+        get() = prefs.getBoolean("show_epg_on_low_end_tv", false)
+        set(value) = prefs.edit().putBoolean("show_epg_on_low_end_tv", value).apply()
 
     // Network Settings
     var useProxy: Boolean
@@ -422,6 +475,15 @@ class PreferencesHelper(private val context: Context) {
             val editor = prefs.edit()
             settings.forEach { (key, value) ->
                 if (!isImportableKey(key)) return@forEach
+                if (key == "epg_schedule_count" || key == "epg_schedule_count_slider") {
+                    val count = when (value) {
+                        is Number -> value.toInt()
+                        is String -> value.toIntOrNull()
+                        else -> null
+                    } ?: return@forEach
+                    editor.putInt("epg_schedule_count_slider", count.coerceIn(5, 20))
+                    return@forEach
+                }
                 when {
                     value is Boolean -> editor.putBoolean(key, value)
                     value is String -> editor.putString(key, value)
@@ -453,7 +515,13 @@ class PreferencesHelper(private val context: Context) {
             playbackSpeed = Constants.DefaultSettings.DEFAULT_PLAYBACK_SPEED
             uiTheme = "dark"
             showChannelNumbers = true
-            showChannelLogos = true
+            showChannelLogos = false
+            showChannelGroupName = false
+            showChannelSourceCount = true
+            showPreferredSourceName = false
+            showChannelProbeStatus = true
+            channelDrawerGroupWidthDp = 250
+            channelDrawerListWidthDp = 350
             showUnavailableChannels = false
             showEmptyChannelGroups = false
             enableAutoRefresh = true

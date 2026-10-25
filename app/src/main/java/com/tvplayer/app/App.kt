@@ -1,7 +1,11 @@
 package com.tvplayer.app
 
+import android.app.Activity
 import android.app.Application
 import android.app.ActivityManager
+import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import com.bumptech.glide.Glide
 import com.tvplayer.app.data.db.AppDatabase
@@ -16,6 +20,9 @@ import com.tvplayer.app.util.DeviceProfile
 import com.tvplayer.app.util.DebugReporter
 import com.tvplayer.app.util.LivePlaybackLogServer
 import com.tvplayer.app.util.AppSleepTimer
+import com.tvplayer.app.util.AppExitReceiver
+import com.tvplayer.app.util.PlaybackControls
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -32,6 +39,8 @@ class App : Application() {
         private const val TAG = "App"
         private const val AUTO_REFRESH_RETRY_COUNT = 3
         private const val AUTO_REFRESH_RETRY_DELAY_MS = 60_000L
+        const val ACTION_EXIT_MAIN_PROCESS = "com.tvplayer.app.ACTION_EXIT_MAIN_PROCESS"
+        private const val PROCESS_EXIT_GRACE_MS = 1_200L
         lateinit var instance: App
             private set
         private val playbackActive = AtomicBoolean(false)
@@ -43,12 +52,17 @@ class App : Application() {
         fun isPlaybackActive(): Boolean = playbackActive.get()
     }
 
-    val applicationScope = CoroutineScope(SupervisorJob())
+    @Volatile
+    var applicationScope: CoroutineScope = CoroutineScope(SupervisorJob())
+        private set
     val database by lazy { AppDatabase.getDatabase(this) }
     val preferences by lazy { PreferencesHelper(this) }
     private var refreshLoopJob: Job? = null
     private var epgRefreshLoopJob: Job? = null
     private var channelProbeLoopJob: Job? = null
+    private val exitRequested = AtomicBoolean(false)
+    private val exitHandler = Handler(Looper.getMainLooper())
+    private var processExitRunnable: Runnable? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -173,6 +187,84 @@ class App : Application() {
         }
     }
 
+    /** Restores app-owned background work if the user opens the app during the exit grace period. */
+    fun onAppActivityCreated() {
+        exitRequested.set(false)
+        processExitRunnable?.let(exitHandler::removeCallbacks)
+        processExitRunnable = null
+
+        if (applicationScope.coroutineContext[Job]?.isActive != true) {
+            applicationScope = CoroutineScope(SupervisorJob())
+        }
+
+        if (isPlaybackProcess()) {
+            if (!LivePlaybackLogServer.isRunning()) {
+                LivePlaybackLogServer.start(this)
+                    .onFailure { Log.w(TAG, "Could not restart live playback log endpoint", it) }
+            }
+        } else {
+            ensureBackgroundLoops()
+        }
+    }
+
+    /** Stops this app's work, closes the current task, then terminates this app process. */
+    fun requestExit(activity: Activity, sleepTimerExpired: Boolean = false) {
+        if (!exitRequested.compareAndSet(false, true)) {
+            activity.finishAndRemoveTask()
+            return
+        }
+
+        (activity as? AppExitParticipant)?.prepareForAppExit(sleepTimerExpired)
+        stopApplicationWork()
+        if (!sleepTimerExpired) {
+            runCatching { PlaybackControls.cancelTimer(this) }
+                .onFailure { Log.w(TAG, "Could not cancel sleep timer during exit", it) }
+        }
+
+        activity.finishAndRemoveTask()
+        if (isPlaybackProcess()) {
+            sendBroadcast(
+                Intent(ACTION_EXIT_MAIN_PROCESS)
+                    .setClass(this, AppExitReceiver::class.java)
+            )
+        }
+        scheduleProcessTermination()
+    }
+
+    /** Called by the playback-process receiver so the launcher process also stops its loops. */
+    internal fun onRemoteExitRequested() {
+        exitRequested.set(true)
+        stopApplicationWork()
+        scheduleProcessTermination()
+    }
+
+    private fun stopApplicationWork() {
+        refreshLoopJob?.cancel()
+        epgRefreshLoopJob?.cancel()
+        channelProbeLoopJob?.cancel()
+        refreshLoopJob = null
+        epgRefreshLoopJob = null
+        channelProbeLoopJob = null
+        applicationScope.cancel()
+        if (isPlaybackProcess()) LivePlaybackLogServer.stop()
+    }
+
+    private fun ensureBackgroundLoops() {
+        if (refreshLoopJob?.isActive != true) startAutoRefreshLoop()
+        if (!DeviceProfile.isTv(this) && epgRefreshLoopJob?.isActive != true) startEpgRefreshLoop()
+        if (!DeviceProfile.isTv(this) && channelProbeLoopJob?.isActive != true) startChannelProbeLoop()
+    }
+
+    private fun scheduleProcessTermination() {
+        processExitRunnable?.let(exitHandler::removeCallbacks)
+        processExitRunnable = Runnable {
+            if (exitRequested.get()) {
+                Log.i(TAG, "Exit cleanup complete; terminating process ${Process.myPid()}")
+                Process.killProcess(Process.myPid())
+            }
+        }.also { exitHandler.postDelayed(it, PROCESS_EXIT_GRACE_MS) }
+    }
+
     private fun isPlaybackProcess(): Boolean {
         val processName = (getSystemService(ACTIVITY_SERVICE) as? ActivityManager)
             ?.runningAppProcesses
@@ -181,4 +273,8 @@ class App : Application() {
         return processName == "$packageName:playback"
     }
 
+}
+
+interface AppExitParticipant {
+    fun prepareForAppExit(sleepTimerExpired: Boolean)
 }

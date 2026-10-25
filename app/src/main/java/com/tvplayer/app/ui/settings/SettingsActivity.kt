@@ -41,6 +41,7 @@ import com.tvplayer.app.util.SystemSettingsLauncher
 import com.tvplayer.app.util.AppVersion
 import com.tvplayer.app.util.PlaybackControls
 import com.tvplayer.app.util.TvDialogStyler
+import com.tvplayer.app.util.TvSingleChoiceDialog
 import com.tvplayer.app.util.DeviceProfile
 import com.tvplayer.app.ui.subscription.SubscriptionManagementActivity
 
@@ -153,10 +154,12 @@ class SettingsActivity : FragmentActivity() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             preferenceManager.sharedPreferencesName = Constants.PREFS_NAME
             preferenceManager.sharedPreferencesMode = android.content.Context.MODE_PRIVATE
+            val context = requireContext()
+            // Migrate the old string-valued EPG count before SeekBarPreference
+            // reads the new integer key from SharedPreferences.
+            preferencesHelper = PreferencesHelper(context)
             setPreferencesFromResource(R.xml.preferences, rootKey)
 
-            val context = requireContext()
-            preferencesHelper = PreferencesHelper(context)
             bindUserUiSettings()
             bindRefreshSettings()
             bindSleepTimer()
@@ -191,7 +194,7 @@ class SettingsActivity : FragmentActivity() {
                 summary = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\nAndroid ${android.os.Build.VERSION.RELEASE} · API ${android.os.Build.VERSION.SDK_INT}"
                 isSelectable = false; isIconSpaceReserved = false
             })
-            if (!tv) listOf("open_developer_options", "check_root_access").forEach { findPreference<Preference>(it)?.isVisible = false }
+            if (!tv) listOf("open_developer_options", "check_root_access", "boot_start_enabled").forEach { findPreference<Preference>(it)?.isVisible = false }
             showSection(SettingsSection.fromKey((activity as? SettingsActivity)?.section?.key) ?: SettingsSection.PLAYBACK)
         }
 
@@ -210,13 +213,12 @@ class SettingsActivity : FragmentActivity() {
         }
 
         override fun onDisplayPreferenceDialog(preference: Preference) {
+            if (preference is ListPreference) {
+                showListPreferenceDialog(preference)
+                return
+            }
             val builder = AlertDialog.Builder(requireContext()).setTitle(preference.title).setNegativeButton("取消", null)
             val dialog = when (preference) {
-                is ListPreference -> builder.setSingleChoiceItems(preference.entries, preference.findIndexOfValue(preference.value)) { dialog, index ->
-                    val value = preference.entryValues[index].toString()
-                    if (preference.callChangeListener(value)) preference.value = value
-                    dialog.dismiss()
-                }.create()
                 is EditTextPreference -> {
                     val input = EditText(requireContext()).apply {
                         setText(preference.text); inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
@@ -232,6 +234,30 @@ class SettingsActivity : FragmentActivity() {
             TvDialogStyler.apply(dialog)
             dialog.setOnDismissListener { focusPreference(preference.key) }
             dialog.show()
+        }
+
+        /** A single explicit checked row plus a separate high-contrast D-pad focus state. */
+        private fun showListPreferenceDialog(preference: ListPreference) {
+            val entries = preference.entries
+            val values = preference.entryValues
+            if (entries.isEmpty() || values.isEmpty()) return
+
+            val selectedIndex = preference.findIndexOfValue(preference.value)
+                .takeIf { it in entries.indices } ?: 0
+            TvSingleChoiceDialog.show(
+                context = requireContext(),
+                title = preference.title ?: preference.key,
+                entries = entries,
+                selectedIndex = selectedIndex,
+                onDismiss = { focusPreference(preference.key) },
+                onSelected = { index ->
+                    val value = values[index].toString()
+                    if (preference.callChangeListener(value)) {
+                        preference.value = value
+                        true
+                    } else false
+                }
+            )
         }
 
         override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -307,6 +333,19 @@ class SettingsActivity : FragmentActivity() {
                     summary = "保留最近正常播放的 ${next} 个频道；减少数量会裁剪较早记录"; true
                 }
             }
+            listOf(
+                "channel_drawer_group_width" to (150..400),
+                "channel_drawer_list_width" to (250..600)
+            ).forEach { (key, range) ->
+                findPreference<SeekBarPreference>(key)?.apply {
+                    isVisible = tv
+                    summary = "当前 ${value}dp；每步 5dp，范围 ${range.first}–${range.last}dp"
+                    setOnPreferenceChangeListener { _, next ->
+                        summary = "当前 ${next}dp；每步 5dp，范围 ${range.first}–${range.last}dp"
+                        true
+                    }
+                }
+            }
         }
 
         override fun onResume() {
@@ -350,12 +389,13 @@ class SettingsActivity : FragmentActivity() {
             val state = PlaybackControls.snapshot(requireContext())
             val lastMinutes = ((state?.getLong("lastDuration") ?: 3_600_000L) / 60_000L).toInt()
             var hours = (lastMinutes / 60).coerceIn(0, 23)
-            var minutes = (lastMinutes % 60).coerceIn(0, 59)
+            // Keep legacy timer values on the new five-minute grid.
+            var minutes = ((((lastMinutes % 60) + 2) / 5) * 5).coerceIn(0, 55)
             val content = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(dp(24), dp(8), dp(24), dp(8))
             }
-            fun addCounter(unit: String, maximum: Int, initial: Int, update: (Int) -> Unit) {
+            fun addCounter(unit: String, maximum: Int, initial: Int, step: Int = 1, update: (Int) -> Unit) {
                 var value = initial
                 val row = LinearLayout(requireContext()).apply { gravity = Gravity.CENTER_VERTICAL }
                 val label = TextView(requireContext()).apply {
@@ -366,7 +406,7 @@ class SettingsActivity : FragmentActivity() {
                     text = textLabel
                     contentDescription = (if (delta < 0) "减少" else "增加") + unit
                     setOnClickListener {
-                        value = (value + delta).coerceIn(0, maximum)
+                        value = (value + delta * step).coerceIn(0, maximum)
                         label.text = "$value $unit"
                         update(value)
                     }
@@ -377,10 +417,10 @@ class SettingsActivity : FragmentActivity() {
                 content.addView(row)
             }
             addCounter("小时", 23, hours) { hours = it }
-            addCounter("分钟", 59, minutes) { minutes = it }
+            addCounter("分钟", 55, minutes, step = 5) { minutes = it }
             val dialog = AlertDialog.Builder(requireContext())
-                .setTitle("定时关闭（最长 23 小时 59 分钟）")
-                .setMessage("使用遥控器或点击 − / + 调整。本次倒计时不会因换台而重置；到点退出应用，不关闭设备。")
+                .setTitle("定时关闭（最长 23 小时 55 分钟）")
+                .setMessage("使用遥控器或点击 − / + 调整，分钟按 5 分钟递增。本次倒计时不会因换台而重置；到点退出应用，不关闭设备。")
                 .setView(content)
                 .setNegativeButton("返回", null)
                 .setPositiveButton("开始计时", null)
@@ -526,15 +566,16 @@ class SettingsActivity : FragmentActivity() {
             onSelected: (Long) -> Unit
         ) {
             val selectedIndex = values.indexOfFirst { it.toLongOrNull() == currentValue }.coerceAtLeast(0)
-            AlertDialog.Builder(requireContext())
-                .setTitle(title)
-                .setSingleChoiceItems(entries, selectedIndex) { dialog, which ->
-                    val interval = values.getOrNull(which)?.toLongOrNull() ?: return@setSingleChoiceItems
-                    onSelected(interval)
-                    dialog.dismiss()
+            TvSingleChoiceDialog.show(
+                context = requireContext(),
+                title = title,
+                entries = entries,
+                selectedIndex = selectedIndex,
+                onSelected = { which ->
+                    val interval = values.getOrNull(which)?.toLongOrNull()
+                    if (interval != null) { onSelected(interval); true } else false
                 }
-                .setNegativeButton("取消", null)
-                .show()
+            )
         }
 
         private fun showToast(message: String) {

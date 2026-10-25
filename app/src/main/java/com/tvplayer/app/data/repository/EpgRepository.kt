@@ -103,29 +103,54 @@ class EpgRepository(
     suspend fun getCurrentProgramInfo(
         channel: Channel,
         nowMillis: Long = System.currentTimeMillis()
-    ): ChannelEpgInfo = withContext(Dispatchers.IO) {
-        val index = getOrBuildIndex() ?: return@withContext ChannelEpgInfo(null, null)
-        val matchedIds = matchChannelIds(index, channel.name)
-        if (matchedIds.isEmpty()) {
-            return@withContext ChannelEpgInfo(null, null)
+    ): ChannelEpgInfo {
+        val schedule = getProgramSchedule(channel, futureProgramCount = 1, nowMillis = nowMillis)
+        val current = schedule.firstOrNull { nowMillis in it.startMillis until it.endMillis }
+        val next = if (current != null) {
+            schedule.firstOrNull { it.startMillis >= current.endMillis }
+        } else {
+            schedule.firstOrNull { it.startMillis > nowMillis }
         }
-
-        val programs = matchedIds
-            .flatMap { index.programsByChannelId[it].orEmpty() }
-            .distinctBy { "${it.title}-${it.startMillis}-${it.endMillis}" }
-            .sortedBy { it.startMillis }
-
-        val current = programs.firstOrNull { nowMillis in it.startMillis until it.endMillis }
-        val next = when {
-            current != null -> programs.firstOrNull { it.startMillis >= current.endMillis }
-            else -> programs.firstOrNull { it.startMillis > nowMillis }
-        }
-
-        ChannelEpgInfo(current = current, next = next)
+        return ChannelEpgInfo(current = current, next = next)
     }
 
-    fun shouldRefresh(nowMillis: Long = System.currentTimeMillis()): Boolean {
-        if (!preferences.epgEnabled) return false
+    /** Returns the active programme followed by up to [futureProgramCount] future entries. */
+    suspend fun getProgramSchedule(
+        channel: Channel,
+        futureProgramCount: Int = 5,
+        nowMillis: Long = System.currentTimeMillis()
+    ): List<EpgProgram> = withContext(Dispatchers.IO) {
+        val index = getOrBuildIndex() ?: return@withContext emptyList()
+        val matchedIds = matchChannelIds(index, channel.name)
+        if (matchedIds.isEmpty()) {
+            return@withContext emptyList()
+        }
+
+        val candidates = matchedIds.mapNotNull { channelId ->
+            val programs = index.programsByChannelId[channelId].orEmpty()
+            if (programs.isEmpty()) return@mapNotNull null
+            val currentIndex = programs.indexOfFirst { nowMillis in it.startMillis until it.endMillis }
+            val startIndex = if (currentIndex >= 0) currentIndex else {
+                programs.indexOfFirst { it.startMillis > nowMillis }
+            }
+            if (startIndex < 0) emptyList() else programs.drop(startIndex)
+        }
+
+        // Never combine schedule rows from different fuzzy-matched channel IDs.
+        // Prefer the ID with a current programme, otherwise the first upcoming one.
+        val sequence = candidates.firstOrNull { programs ->
+            programs.firstOrNull()?.let { nowMillis in it.startMillis until it.endMillis } == true
+        } ?: candidates.firstOrNull().orEmpty()
+        val count = futureProgramCount.coerceIn(1, 20) +
+            if (sequence.firstOrNull()?.let { nowMillis in it.startMillis until it.endMillis } == true) 1 else 0
+        sequence.take(count)
+    }
+
+    fun shouldRefresh(
+        nowMillis: Long = System.currentTimeMillis(),
+        allowWhenGloballyDisabled: Boolean = false
+    ): Boolean {
+        if (!preferences.epgEnabled && !allowWhenGloballyDisabled) return false
 
         val lastUpdated = preferences.epgLastUpdated
         if (lastUpdated <= 0L) return true
@@ -133,6 +158,22 @@ class EpgRepository(
         val interval = preferences.epgRefreshInterval.coerceAtLeast(Constants.REFRESH_INTERVAL_5_MINUTES)
         val scheduledSlot = latestScheduledSlot(nowMillis, interval)
         return lastUpdated < scheduledSlot
+    }
+
+    /**
+     * TV playback normally skips background EPG work. If the user explicitly
+     * enables EPG on a low-end TV, fetch only when missing/stale and honor the
+     * configured refresh interval even when the legacy profile disabled the
+     * global background EPG flag.
+     *
+     * @return the refresh result, or null when the cached data is still fresh.
+     */
+    suspend fun refreshIfNeededForPlayback(
+        allowWhenGloballyDisabled: Boolean = false,
+        nowMillis: Long = System.currentTimeMillis()
+    ): Result<String>? {
+        if (!shouldRefresh(nowMillis, allowWhenGloballyDisabled)) return null
+        return refreshEpgSources()
     }
 
     private fun latestScheduledSlot(nowMillis: Long, intervalMillis: Long): Long {
@@ -230,7 +271,9 @@ class EpgRepository(
                         val start = currentProgrammeStart
                         val end = currentProgrammeEnd
                         val title = currentProgrammeTitle
-                        if (!channelId.isNullOrBlank() && start != null && end != null && !title.isNullOrBlank()) {
+                        if (!channelId.isNullOrBlank() && start != null && end != null &&
+                            !title.isNullOrBlank() && !isServiceAttributionTitle(title)
+                        ) {
                             programsByChannelId.getOrPut(channelId) { mutableListOf() }
                                 .add(EpgProgram(title = title, startMillis = start, endMillis = end))
                         }
@@ -260,23 +303,53 @@ class EpgRepository(
 
         index.normalizedNameToIds[normalized]?.let { return it }
 
-        val variants = mutableSetOf(normalized)
-        Regex("cctv(\\d+)").find(normalized)?.groupValues?.getOrNull(1)?.let { number ->
-            variants += "cctv$number"
-            variants += number
-        }
-        val simplified = normalized.replace(Regex("(综合|新闻|电影|体育|少儿|电视剧|财经|科教|社会与法|纪录|戏曲|音乐)$"), "")
-        if (simplified.isNotBlank()) {
-            variants += simplified
+        val variants = buildSet {
+            add(normalized)
+            val simplified = normalized.replace(
+                Regex("(综合|新闻|电影|体育|少儿|电视剧|财经|科教|社会与法|纪录|戏曲|音乐)$"),
+                ""
+            )
+            if (simplified.isNotBlank()) add(simplified)
         }
 
-        val matched = mutableSetOf<String>()
-        index.normalizedNameToIds.forEach { (name, ids) ->
-            if (variants.any { variant -> name == variant || name.contains(variant) || variant.contains(name) }) {
-                matched += ids
+        // Only accept complete-name prefixes. Substring matching turned the
+        // numeric part of CCTV2 into a match for CCTV12 and unrelated channels,
+        // which could supply the wrong next-program title.
+        val bestMatch = index.normalizedNameToIds.entries
+            .mapNotNull { (indexedName, ids) ->
+                val distance = variants.mapNotNull { variant ->
+                    if (namesAreEquivalent(variant, indexedName)) {
+                        kotlin.math.abs(variant.length - indexedName.length)
+                    } else {
+                        null
+                    }
+                }.minOrNull()
+                distance?.let { it to ids }
             }
-        }
-        return matched
+            .minByOrNull { it.first }
+        return bestMatch?.second.orEmpty()
+    }
+
+    private fun namesAreEquivalent(first: String, second: String): Boolean {
+        if (first == second) return true
+        val shorter = if (first.length < second.length) first else second
+        val longer = if (first.length < second.length) second else first
+        if (!longer.startsWith(shorter)) return false
+
+        // CCTV2 must not match CCTV20 or CCTV12 by a shared numeric prefix.
+        val cctvNumberedName = shorter.contains(Regex("cctv\\d+"))
+        val nextCharacter = longer.getOrNull(shorter.length)
+        return !cctvNumberedName || nextCharacter?.isDigit() != true
+    }
+
+    private fun isServiceAttributionTitle(title: String): Boolean {
+        val normalized = title.trim().lowercase(Locale.ROOT)
+        val hasWebAddress = normalized.contains("http://") || normalized.contains("https://") ||
+            normalized.contains("www.")
+        val describesEpgService = normalized.contains("节目单") || normalized.contains("epg")
+        return (hasWebAddress && describesEpgService) ||
+            normalized.contains("提供节目单服务") ||
+            normalized.contains("节目单服务由")
     }
 
     private fun normalizeChannelName(name: String): String {

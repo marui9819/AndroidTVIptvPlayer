@@ -60,6 +60,8 @@
                 android:layout_height="wrap_content"
                 android:textColor="@android:color/darker_gray"
                 android:textSize="12sp"
+                android:maxLines="1"
+                android:ellipsize="end"
                 tools:text="Channel Group" />
 
             <TextView

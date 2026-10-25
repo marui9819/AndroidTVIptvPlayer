@@ -49,6 +49,7 @@ import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.PlayerView
 import com.tvplayer.app.R
 import com.tvplayer.app.App
+import com.tvplayer.app.AppExitParticipant
 import com.tvplayer.app.data.db.AppDatabase
 import com.tvplayer.app.data.model.Channel
 import com.tvplayer.app.data.repository.EpgRepository
@@ -60,6 +61,7 @@ import com.tvplayer.app.network.PlaybackStreamInfo
 import com.tvplayer.app.network.isInvalidHuyaCdnHostError
 import com.tvplayer.app.ui.player.adapter.ChannelGroupAdapter
 import com.tvplayer.app.ui.player.adapter.ChannelListAdapter
+import com.tvplayer.app.ui.player.adapter.ChannelListDisplayOptions
 import com.tvplayer.app.ui.settings.SettingsActivity
 import com.tvplayer.app.ui.subscription.SubscriptionManagementActivity
 import com.tvplayer.app.util.Constants
@@ -109,6 +111,7 @@ import com.tvplayer.app.util.shouldScrollToStableSelection
 import com.tvplayer.app.util.AppVersion
 import com.tvplayer.app.util.TvFocusStyler
 import com.tvplayer.app.util.TvDialogStyler
+import com.tvplayer.app.util.TvSingleChoiceDialog
 import com.tvplayer.app.util.PlaybackControls
 import com.tvplayer.app.util.ChannelUserPolicy
 import com.tvplayer.app.util.PlaybackCornerOverlay
@@ -126,7 +129,6 @@ import android.util.Rational
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.tvplayer.app.util.PlaybackProtectionPolicy
-import com.tvplayer.app.util.TimedAppExitParticipant
 import com.tvplayer.app.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 import java.io.IOException
@@ -140,15 +142,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
-class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
+class PlayerActivity : AppCompatActivity(), AppExitParticipant {
 
     companion object {
         private const val TAG = "PlayerActivity"
+        private const val CHANNEL_CATEGORY_SWITCH_DELAY_MS = 500L
         private const val UI_HIDE_DELAY = 5000L
         private const val MAX_SAME_SOURCE_RETRY = 2
         private const val MAX_AUTOMATIC_FAILOVER_CHANNELS = 8
@@ -283,11 +287,19 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
     private var actionMenuShowingMore = false
     private var hideUiRunnable: Runnable? = null
     private var epgJob: Job? = null
+    private var epgRefreshJob: Job? = null
+    private var drawerEpgJob: Job? = null
     private var playbackJob: Job? = null
     private var retryJob: Job? = null
     private var retryStabilityJob: Job? = null
     private lateinit var channelListAdapter: ChannelListAdapter
     private lateinit var channelGroupAdapter: ChannelGroupAdapter
+    private var channelDrawerGroupWidthDp = 250
+    private var channelDrawerListWidthDp = 350
+    private var channelListIconsVisible = false
+    private var channelListDisplayOptions = ChannelListDisplayOptions()
+    private var renderedChannelGroupName: String? = null
+    private var pendingChannelGroupName: String? = null
     private var playbackRetryChannelId: Long = -1L
     private var playbackRetryCount: Int = 0
     private val autoFailedChannelKeys = linkedSetOf<String>()
@@ -413,6 +425,7 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
     private var standbyPreconnectedDataSource: PreconnectedHttpDataSource? = null
     private var avPrecheckEnabled = true
     private var missingAudioRecoveryEnabled = true
+    private var showEpgOnLowEndTv = false
     private var timedExitRequested = false
     private var activeAudioTrackCount = 0
     private var activeAudioPlaybackAdvanced = false
@@ -495,6 +508,7 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        App.instance.onAppActivityCreated()
         reloadPlaybackProtectionSettings()
         ensureLivePlaybackLogServer()
 
@@ -717,13 +731,26 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
         val settings = PlaybackControls.snapshot(this) ?: return
         avPrecheckEnabled = settings.getBoolean("precheck", true)
         missingAudioRecoveryEnabled = settings.getBoolean("audioRecovery", true)
+        showEpgOnLowEndTv = settings.getBoolean("showEpgOnLowEndTv", false)
+        if (!isProgramGuideEnabledForDevice()) {
+            epgJob?.cancel()
+            epgJob = null
+            drawerEpgJob?.cancel()
+            drawerEpgJob = null
+            epgRefreshJob?.cancel()
+            epgRefreshJob = null
+        }
         applyUserUiSnapshot(settings)
         if (!missingAudioRecoveryEnabled) {
             huyaMissingAudioRetryJob?.cancel()
             huyaMissingAudioRetryJob = null
         }
         DebugReporter.recordLivePlaybackEvent("playback_protection_settings", currentChannel,
-            mapOf("avPrecheck" to avPrecheckEnabled, "audioRecovery" to missingAudioRecoveryEnabled))
+            mapOf(
+                "avPrecheck" to avPrecheckEnabled,
+                "audioRecovery" to missingAudioRecoveryEnabled,
+                "showEpgOnLowEndTv" to showEpgOnLowEndTv
+            ))
     }
 
     private fun applyUserUiSnapshot(settings: Bundle) {
@@ -731,13 +758,30 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
         channelNameTransparency = settings.getInt("nameTransparency", 50)
         showCurrentTime = settings.getBoolean("showClock", true)
         showVersionBadge = settings.getBoolean("showVersion", true)
+        channelDrawerGroupWidthDp = settings.getInt(
+            "channelDrawerGroupWidthDp", preferences.channelDrawerGroupWidthDp
+        ).coerceIn(150, 400)
+        channelDrawerListWidthDp = settings.getInt(
+            "channelDrawerListWidthDp", preferences.channelDrawerListWidthDp
+        ).coerceIn(250, 600)
+        channelListIconsVisible = settings.getBoolean("showChannelLogos", preferences.showChannelLogos)
+        channelListDisplayOptions = ChannelListDisplayOptions(
+            showIcons = channelListIconsVisible,
+            showCategoryName = settings.getBoolean("showChannelGroupName", preferences.showChannelGroupName),
+            showSourceCount = settings.getBoolean("showChannelSourceCount", preferences.showChannelSourceCount),
+            showPreferredSourceName = settings.getBoolean("showPreferredSourceName", preferences.showPreferredSourceName),
+            showProbeStatus = settings.getBoolean("showChannelProbeStatus", preferences.showChannelProbeStatus)
+        )
         defaultResizeMode = settings.getInt("defaultResizeMode", AspectRatioFrameLayout.RESIZE_MODE_FIT)
         sleepDeadlineMs = if (!settings.getString("token").isNullOrEmpty()) settings.getLong("deadline") else 0L
         val aliases = settings.getBundle("aliases")
         channelAliases = aliases?.keySet()?.associateWith { aliases.getString(it).orEmpty() }.orEmpty()
         if (::channelListAdapter.isInitialized) channelListAdapter.setAliases(channelAliases)
+        if (::channelListAdapter.isInitialized) channelListAdapter.setDisplayOptions(channelListDisplayOptions)
         if (::binding.isInitialized) {
+            updateChannelDrawerWidth()
             binding.channelName.text = currentChannel?.let(::displayChannelName).orEmpty()
+            binding.channelLogo.visibility = if (channelListIconsVisible && !isLowEndTvDevice) View.VISIBLE else View.GONE
             updatePersistentChannelName()
         }
         if (::cornerOverlay.isInitialized) cornerOverlay.start(showCurrentTime, showVersionBadge, sleepDeadlineMs)
@@ -775,10 +819,14 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
         }
     }
 
-    override fun stopForTimedExit() {
-        timedExitRequested = true
-        DebugReporter.recordLivePlaybackEvent("sleep_timer_expired", currentChannel)
+    override fun prepareForAppExit(sleepTimerExpired: Boolean) {
+        timedExitRequested = sleepTimerExpired
+        if (sleepTimerExpired) {
+            DebugReporter.recordLivePlaybackEvent("sleep_timer_expired", currentChannel)
+        }
+        App.setPlaybackActive(false)
         releasePlayer()
+        LivePlaybackLogServer.stop()
     }
 
     private fun createTrackedPlayer(decoderMode: String): ExoPlayer {
@@ -1455,6 +1503,12 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
         binding.playerRoot.isFocusable = true
         binding.playerRoot.isFocusableInTouchMode = true
 
+        updateChannelDrawerWidth()
+        if (phone) {
+            binding.channelEpgDivider.visibility = View.GONE
+            binding.channelDrawerEpgPanel.visibility = View.GONE
+        }
+
         binding.playPauseButton.setOnClickListener { togglePlayPause() }
         binding.stopButton.setOnClickListener { openActionMenu() }
         binding.previousButton.setOnClickListener { viewModel.playPreviousChannel() }
@@ -1482,6 +1536,7 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
             showPlaybackChrome()
         }
         channelListAdapter.setAliases(channelAliases)
+        channelListAdapter.setDisplayOptions(channelListDisplayOptions)
         binding.channelRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.channelRecyclerView.adapter = channelListAdapter
         binding.channelRecyclerView.setHasFixedSize(true)
@@ -1494,7 +1549,7 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
         binding.actionMenuView.visibility = View.GONE
         binding.progressBar.visibility = View.GONE
         binding.sourceSwitchContainer.visibility = View.GONE
-        binding.channelLogo.visibility = if (preferences.showChannelLogos && !isLowEndTvDevice) View.VISIBLE else View.GONE
+        binding.channelLogo.visibility = if (channelListIconsVisible && !isLowEndTvDevice) View.VISIBLE else View.GONE
         showPrimaryQuickActions()
         updateQuickFavoriteButton()
         updatePersistentChannelName()
@@ -1594,22 +1649,62 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
                     }
                 }
                 launch {
-                    viewModel.visibleChannels.collectLatest { channels ->
-                        val manager = binding.channelRecyclerView.layoutManager as? LinearLayoutManager
+                    combine(
+                        viewModel.visibleChannels,
+                        viewModel.selectedGroupIndex,
+                        viewModel.selectorVisible
+                    ) { channels, groupIndex, selectorVisible ->
+                        Triple(channels, groupIndex, selectorVisible)
+                    }.collectLatest { (_, groupIndex, selectorVisible) ->
+                        val groupName = viewModel.channelGroups.value.getOrNull(groupIndex)?.name
+                        val shouldDelayCategoryList = !phone && selectorVisible &&
+                            !groupName.isNullOrBlank() && groupName != renderedChannelGroupName
+
+                        if (shouldDelayCategoryList) {
+                            pendingChannelGroupName = groupName
+                            drawerEpgJob?.cancel()
+                            drawerEpgJob = null
+                            binding.channelRecyclerView.visibility = View.INVISIBLE
+                            binding.channelPaneTitle.text = "频道 · 切换分类中…"
+                            binding.channelDrawerEpgChannelName.text = groupName
+                            binding.channelDrawerEpgNowText.text = "正在切换频道分类…"
+                            binding.channelDrawerEpgNextText.text = ""
+                            binding.channelDrawerEpgStatus.text = ""
+                            delay(CHANNEL_CATEGORY_SWITCH_DELAY_MS)
+                            if (!viewModel.selectorVisible.value ||
+                                viewModel.selectedGroupIndex.value != groupIndex ||
+                                viewModel.channelGroups.value.getOrNull(groupIndex)?.name != groupName
+                            ) return@collectLatest
+                        }
+
+                        if (!selectorVisible) {
+                            pendingChannelGroupName = null
+                            renderedChannelGroupName = null
+                            binding.channelRecyclerView.visibility = View.VISIBLE
+                            binding.channelPaneTitle.text = "频道 · OK 播放"
+                        } else {
+                            pendingChannelGroupName = null
+                            binding.channelRecyclerView.visibility = View.VISIBLE
+                            binding.channelPaneTitle.text = "频道 · OK 播放"
+                        }
+
+                        val currentChannels = viewModel.visibleChannels.value
                         val selectedGroupName = viewModel.channelGroups.value
                             .getOrNull(viewModel.selectedGroupIndex.value)?.name
+                        if (selectorVisible) renderedChannelGroupName = selectedGroupName
+                        val manager = binding.channelRecyclerView.layoutManager as? LinearLayoutManager
                         val selectedChannelIndex = viewModel.selectedChannelIndex.value
-                        val selectedChannelKey = channels.getOrNull(selectedChannelIndex)?.key
-                        channelListAdapter.submitList(channels)
-                        refreshChannelListSelection(channels)
-                        if (selectedChannelKey != null && viewModel.selectorVisible.value) {
+                        val selectedChannelKey = currentChannels.getOrNull(selectedChannelIndex)?.key
+                        channelListAdapter.submitList(currentChannels)
+                        refreshChannelListSelection(currentChannels)
+                        updateDrawerEpgInfo()
+                        if (selectedChannelKey != null && selectorVisible) {
                             binding.channelRecyclerView.post {
-                                val currentGroups = viewModel.channelGroups.value
-                                val currentSelectedGroupName = currentGroups
+                                val currentGroupName = viewModel.channelGroups.value
                                     .getOrNull(viewModel.selectedGroupIndex.value)?.name
                                 if (viewModel.selectorVisible.value &&
-                                    viewModel.visibleChannels.value === channels &&
-                                    currentSelectedGroupName == selectedGroupName &&
+                                    viewModel.visibleChannels.value === currentChannels &&
+                                    currentGroupName == selectedGroupName &&
                                     viewModel.selectedChannelIndex.value == selectedChannelIndex &&
                                     viewModel.visibleChannels.value
                                         .getOrNull(selectedChannelIndex)?.key == selectedChannelKey
@@ -1619,14 +1714,14 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
                                 }
                             }
                         }
-                        // The selected row is the D-pad cursor. Restoring an
-                        // old viewport anchor can leave it off-screen after
-                        // opening the drawer or refreshing a category.
+                        // Rapid category changes cancel the previous 300ms wait;
+                        // only the final category fills the channel pane.
                     }
                 }
                 launch {
                     viewModel.selectedChannelIndex.collectLatest { index ->
                         refreshChannelListSelection()
+                        updateDrawerEpgInfo()
                         if (index >= 0 && viewModel.selectorVisible.value &&
                             viewModel.selectorPane.value == PlayerViewModel.SelectorPane.CHANNELS
                         ) {
@@ -1652,6 +1747,7 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
                     viewModel.selectorVisible.collectLatest { visible ->
                         binding.channelListView.visibility = if (visible) View.VISIBLE else View.GONE
                         if (visible) {
+                            updateDrawerEpgInfo()
                             closeActionMenu()
                             cancelHideUi()
                             cancelBufferingRecovery()
@@ -1676,9 +1772,13 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
                                     binding.channelRecyclerView.scrollToPosition(index)
                                 }
                             }
-                        } else if (!actionMenuVisible) {
-                            resumeDeferredRecoveryChecks()
-                            scheduleUiHide()
+                        } else {
+                            drawerEpgJob?.cancel()
+                            drawerEpgJob = null
+                            if (!actionMenuVisible) {
+                                resumeDeferredRecoveryChecks()
+                                scheduleUiHide()
+                            }
                         }
                     }
                 }
@@ -2098,12 +2198,15 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
     }
 
     private fun updateEpgInfo(channel: Channel) {
-        if (isLowEndTvDevice) {
+        if (!isProgramGuideEnabledForDevice()) {
             epgJob?.cancel()
-            binding.epgNowText.text = "正在播：低配电视保护模式已关闭节目单"
-            binding.epgNextText.text = "下一档：优先保证播放稳定性"
+            epgJob = null
+            binding.epgNowText.visibility = View.GONE
+            binding.epgNextText.visibility = View.GONE
             return
         }
+        binding.epgNowText.visibility = View.VISIBLE
+        binding.epgNextText.visibility = View.VISIBLE
         binding.epgNowText.text = "正在播：节目单加载中"
         binding.epgNextText.text = "下一档：暂无信息"
         epgJob?.cancel()
@@ -2115,6 +2218,173 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
             binding.epgNextText.text = epgInfo.next?.let {
                 "下一档：${it.title} ${formatTime(it.startMillis)}-${formatTime(it.endMillis)}"
             } ?: "下一档：暂无节目单"
+        }
+    }
+
+    private fun updateDrawerEpgInfo() {
+        if (phone || !viewModel.selectorVisible.value) {
+            drawerEpgJob?.cancel()
+            drawerEpgJob = null
+            return
+        }
+
+        if (pendingChannelGroupName != null) {
+            drawerEpgJob?.cancel()
+            drawerEpgJob = null
+            return
+        }
+
+        updateChannelDrawerWidth()
+
+        if (!isProgramGuideEnabledForDevice()) {
+            drawerEpgJob?.cancel()
+            drawerEpgJob = null
+            binding.channelEpgDivider.visibility = View.GONE
+            binding.channelDrawerEpgPanel.visibility = View.GONE
+            return
+        }
+        binding.channelEpgDivider.visibility = View.VISIBLE
+        binding.channelDrawerEpgPanel.visibility = View.VISIBLE
+
+        val selectedIndex = viewModel.selectedChannelIndex.value
+        val mergedChannel = viewModel.visibleChannels.value.getOrNull(selectedIndex)
+        val selectedKey = mergedChannel?.key
+        if (mergedChannel == null || selectedKey == null) {
+            binding.channelDrawerEpgChannelName.text = "选择频道查看节目单"
+            binding.channelDrawerEpgNowText.text = "暂无节目单"
+            binding.channelDrawerEpgNextText.text = "暂无节目单"
+            binding.channelDrawerEpgStatus.text = ""
+            drawerEpgJob?.cancel()
+            drawerEpgJob = null
+            return
+        }
+
+        val sourceChannel = mergedChannel.preferredSource?.channel
+            ?: mergedChannel.sources.firstOrNull()?.channel
+        binding.channelDrawerEpgChannelName.text = mergedChannel.name
+        if (sourceChannel == null) {
+            binding.channelDrawerEpgNowText.text = "暂无匹配节目单"
+            binding.channelDrawerEpgNextText.text = "暂无匹配节目单"
+            binding.channelDrawerEpgStatus.text = ""
+            drawerEpgJob?.cancel()
+            drawerEpgJob = null
+            return
+        }
+
+        drawerEpgJob?.cancel()
+        val futureProgramCount = preferences.epgScheduleCount
+        val nowMillis = System.currentTimeMillis()
+        binding.channelDrawerEpgScheduleTitle.text = "后续节目（${futureProgramCount}档）"
+        binding.channelDrawerEpgNowText.text = "正在读取节目单…"
+        binding.channelDrawerEpgNextText.text = "正在读取节目单…"
+        binding.channelDrawerEpgStatus.text = ""
+        drawerEpgJob = lifecycleScope.launch {
+            val result = try {
+                Result.success(
+                    epgRepository.getProgramSchedule(
+                        channel = sourceChannel,
+                        futureProgramCount = futureProgramCount,
+                        nowMillis = nowMillis
+                    )
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Result.failure(error)
+            }
+            if (!viewModel.selectorVisible.value ||
+                viewModel.selectedChannelIndex.value != selectedIndex ||
+                viewModel.visibleChannels.value.getOrNull(selectedIndex)?.key != selectedKey
+            ) return@launch
+
+            val schedule = result.getOrNull()
+            if (schedule == null) {
+                binding.channelDrawerEpgNowText.text = "暂无匹配节目单"
+                binding.channelDrawerEpgNextText.text = "暂无匹配节目单"
+                binding.channelDrawerEpgStatus.text = "读取失败"
+                Log.w(TAG, "Failed to read drawer EPG for channel=${sourceChannel.name}", result.exceptionOrNull())
+                return@launch
+            }
+
+            val currentProgram = schedule.firstOrNull {
+                nowMillis in it.startMillis until it.endMillis
+            }
+            val futurePrograms = if (currentProgram != null) {
+                schedule.filter { it.startMillis >= currentProgram.endMillis }.take(futureProgramCount)
+            } else {
+                schedule.filter { it.startMillis > nowMillis }.take(futureProgramCount)
+            }
+            binding.channelDrawerEpgNowText.text = currentProgram?.let {
+                "${it.title}\n${formatTime(it.startMillis)}–${formatTime(it.endMillis)}"
+            } ?: "暂无当前节目"
+            binding.channelDrawerEpgNextText.text = if (futurePrograms.isNotEmpty()) {
+                futurePrograms.mapIndexed { index, program ->
+                    "${index + 1}. ${formatTime(program.startMillis)}–${formatTime(program.endMillis)}  ${program.title}"
+                }.joinToString(separator = "\n")
+            } else {
+                "暂无后续节目"
+            }
+            binding.channelDrawerEpgStatus.text = if (schedule.isNotEmpty()) {
+                "节目单来自本机缓存"
+            } else {
+                "该频道暂未匹配到节目单"
+            }
+        }
+    }
+
+    private fun refreshEpgForOptedInLowEndTv() {
+        if (!isLowEndTvDevice || !showEpgOnLowEndTv || epgRefreshJob?.isActive == true) return
+
+        epgRefreshJob = lifecycleScope.launch {
+            val result = epgRepository.refreshIfNeededForPlayback(allowWhenGloballyDisabled = true)
+            when {
+                result?.isSuccess == true -> {
+                    Log.i(TAG, "EPG refreshed for low-end TV playback from ${result.getOrNull()}")
+                    currentChannel?.let(::updateEpgInfo)
+                    updateDrawerEpgInfo()
+                }
+                result?.isFailure == true -> {
+                    Log.w(TAG, "EPG refresh failed for opted-in low-end TV", result.exceptionOrNull())
+                }
+            }
+        }
+    }
+
+    private fun isProgramGuideEnabledForDevice(): Boolean =
+        if (isLowEndTvDevice) showEpgOnLowEndTv else preferences.epgEnabled
+
+    private fun updateChannelDrawerWidth() {
+        if (!::binding.isInitialized) return
+
+        val density = resources.displayMetrics.density
+        val screenWidthDp = (resources.displayMetrics.widthPixels / density).toInt()
+        if (screenWidthDp <= 0) return
+        val fixedGroupWidthPx = (channelDrawerGroupWidthDp.coerceIn(150, 400) * density).toInt()
+        if (binding.groupPane.layoutParams.width != fixedGroupWidthPx) {
+            binding.groupPane.layoutParams = binding.groupPane.layoutParams.apply {
+                width = fixedGroupWidthPx
+            }
+        }
+        val fixedChannelWidthPx = (channelDrawerListWidthDp.coerceIn(250, 600) * density).toInt()
+        if (binding.channelPane.layoutParams.width != fixedChannelWidthPx) {
+            binding.channelPane.layoutParams = binding.channelPane.layoutParams.apply {
+                width = fixedChannelWidthPx
+            }
+        }
+        val compactWidthDp = channelDrawerGroupWidthDp + channelDrawerListWidthDp + 50
+        val maxWidthDp = minOf(screenWidthDp, 1040)
+        val drawerWidthDp = when {
+            phone -> (screenWidthDp * 0.94f).toInt().coerceAtMost(maxWidthDp).coerceAtLeast(minOf(320, maxWidthDp))
+            !isProgramGuideEnabledForDevice() -> minOf(compactWidthDp, maxWidthDp)
+            else -> (screenWidthDp * 0.88f).toInt()
+                .coerceAtLeast(minOf(compactWidthDp + 180, maxWidthDp))
+                .coerceAtMost(maxWidthDp)
+        }
+        val targetWidthPx = (drawerWidthDp * density).toInt()
+        if (binding.channelListView.layoutParams.width != targetWidthPx) {
+            binding.channelListView.layoutParams = binding.channelListView.layoutParams.apply {
+                width = targetWidthPx
+            }
         }
     }
 
@@ -4511,13 +4781,27 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
                     val deferResolveUntilBackoff = confirmedSourceFailure &&
                         effectiveRecoveryDelayMs > LEGACY_HUYA_HTTP_RETRY_DELAY_MS
                     var resolveStartedAtMs = System.currentTimeMillis()
-                    val candidateJob = if (deferResolveUntilBackoff) null else async {
-                        PlayerHelper.resolvePlaybackInfo(
-                            activeChannel,
-                            attemptIndex = rotationAttempt,
-                            huyaSchemeOverride = currentHuyaRecoverySchemeOverride(),
-                            validateHuyaRedirectHost = huyaRedirectHostValidationRequired
-                        )
+                    val candidateJob: kotlinx.coroutines.Deferred<Result<PlaybackStreamInfo>>? =
+                        if (deferResolveUntilBackoff) null else async {
+                        // async child failures cancel this recovery coroutine before
+                        // its catch block can handle them. Carry resolver failures as
+                        // values so the failure is observed by await() below instead.
+                        try {
+                            Result.success(
+                                PlayerHelper.resolvePlaybackInfo(
+                                    activeChannel,
+                                    attemptIndex = rotationAttempt,
+                                    huyaSchemeOverride = currentHuyaRecoverySchemeOverride(),
+                                    validateHuyaRedirectHost = huyaRedirectHostValidationRequired
+                                )
+                            )
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (error: Exception) {
+                            Result.failure(error)
+                        } catch (error: LinkageError) {
+                            Result.failure(error)
+                        }
                     }
                     try {
                         // APTV's visible retry state distinguishes open-phase
@@ -4526,7 +4810,7 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
                         // launching it during the backoff would still hammer
                         // the room/signature endpoints even if playback waits.
                         kotlinx.coroutines.delay(effectiveRecoveryDelayMs)
-                        val resolvedCandidate = candidateJob?.await() ?: run {
+                        val resolvedCandidate = candidateJob?.await()?.getOrThrow() ?: run {
                             resolveStartedAtMs = System.currentTimeMillis()
                             PlayerHelper.resolvePlaybackInfo(
                                 activeChannel,
@@ -4629,10 +4913,42 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
                             )
                         }
                         throw cancelled
+                    } catch (error: LinkageError) {
+                        huyaRecoveryJob = null
+                        refreshInProgress = false
+                        Log.e(TAG, "Android compatibility failure while renewing Huya stream", error)
+                        handlePlaybackPreparationFailure(error)
                     } catch (error: Exception) {
                         huyaRecoveryJob = null
                         refreshInProgress = false
-                        handlePlaybackPreparationFailure(error)
+                        val activePlayer = player
+                        val currentStreamStillPlayable = currentChannel?.id == activeChannel.id &&
+                            currentPlaybackInfo?.url == playbackInfo.url &&
+                            activePlayer?.playbackState == Player.STATE_READY &&
+                            activePlayer.playWhenReady &&
+                            !isFinishing && !isDestroyed
+                        if (currentStreamStillPlayable) {
+                            Log.w(
+                                TAG,
+                                "Huya renewal failed; keep the currently playing stream for ${activeChannel.name}",
+                                error
+                            )
+                            DebugReporter.recordLivePlaybackEvent(
+                                "huya_renewal_failed_kept_active_stream",
+                                activeChannel,
+                                mapOf(
+                                    "errorType" to error.javaClass.simpleName,
+                                    "error" to extractPlaybackFailureMessage(error),
+                                    "recoveryAction" to "keep_current_stream"
+                                )
+                            )
+                            showStatusHint(
+                                "虎牙续签暂不可用，当前画面继续播放",
+                                STATUS_HINT_LONG_MS
+                            )
+                        } else {
+                            handlePlaybackPreparationFailure(error)
+                        }
                     }
                 }
             } else {
@@ -6775,7 +7091,7 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
             .setTitle("退出应用")
             .setMessage("确定要退出电视直播吗？")
             .setPositiveButton("退出") { _, _ ->
-                finishAffinity()
+                App.instance.requestExit(this)
             }
             .setNegativeButton("取消", null)
             .create()
@@ -7048,6 +7364,13 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
         applyMobileWindowMode()
         if (timedExitRequested) { finishAndRemoveTask(); return }
         reloadPlaybackProtectionSettings()
+        updateChannelDrawerWidth()
+        updateDrawerEpgInfo()
+        if (!isLowEndTvDevice) currentChannel?.let(::updateEpgInfo)
+        if (isLowEndTvDevice) {
+            refreshEpgForOptedInLowEndTv()
+            currentChannel?.let(::updateEpgInfo)
+        }
         cornerOverlay.start(showCurrentTime, showVersionBadge, sleepDeadlineMs)
         if (currentChannelSettingsKey.isNotBlank()) {
             applyResizeMode(preferences.getChannelPlaybackSettings(currentChannelSettingsKey, defaultResizeMode).resizeMode)
@@ -7114,6 +7437,8 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
         deferredRecoveryRunnable = null
         clearDeferredPlaybackError("activity destroyed")
         epgJob?.cancel()
+        epgRefreshJob?.cancel()
+        drawerEpgJob?.cancel()
         cleanupResources()
     }
 
@@ -7455,15 +7780,12 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
             AspectRatioFrameLayout.RESIZE_MODE_FILL
         )
         val currentIndex = values.indexOf(currentResizeMode).takeIf { it >= 0 } ?: 2
-        AlertDialog.Builder(this)
-            .setTitle("画面比例")
-            .setSingleChoiceItems(items, currentIndex) { dialog, which ->
+        TvSingleChoiceDialog.show(this, "画面比例", items, currentIndex) { which ->
                 preferences.setChannelResizeMode(currentChannelSettingsKey, values[which])
                 applyResizeMode(values[which])
                 showToast("已保存当前频道画面比例")
-                dialog.dismiss()
+                true
             }
-            .show()
     }
 
     private fun showDecoderModeDialog() {
@@ -7473,16 +7795,13 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
             PreferencesHelper.CHANNEL_DECODER_COMPATIBILITY
         )
         val currentIndex = values.indexOf(currentDecoderMode).takeIf { it >= 0 } ?: 0
-        AlertDialog.Builder(this)
-            .setTitle("解码模式")
-            .setSingleChoiceItems(items, currentIndex) { dialog, which ->
+        TvSingleChoiceDialog.show(this, "解码模式", items, currentIndex) { which ->
                 preferences.setChannelDecoderMode(currentChannelSettingsKey, values[which])
                 currentDecoderMode = values[which]
                 currentChannel?.let { playChannel(it) }
                 showToast("已保存当前频道解码模式")
-                dialog.dismiss()
+                true
             }
-            .show()
     }
 
     private fun resetChannelPlaybackSettings() {
@@ -7499,32 +7818,26 @@ class PlayerActivity : AppCompatActivity(), TimedAppExitParticipant {
         val items = resources.getStringArray(R.array.huya_scheme_entries)
         val values = resources.getStringArray(R.array.huya_scheme_values)
         val currentIndex = values.indexOf(currentHuyaScheme).takeIf { it >= 0 } ?: 0
-        AlertDialog.Builder(this)
-            .setTitle("虎牙视频方案")
-            .setSingleChoiceItems(items, currentIndex) { dialog, which ->
+        TvSingleChoiceDialog.show(this, "虎牙视频方案", items, currentIndex) { which ->
                 currentHuyaScheme = values[which]
                 preferences.setChannelHuyaScheme(currentChannelSettingsKey, currentHuyaScheme)
                 currentChannel?.let { playChannel(it) }
                 showToast("已保存当前频道虎牙方案")
-                dialog.dismiss()
+                true
             }
-            .show()
     }
 
     private fun showDouyuSchemeDialog() {
         val items = resources.getStringArray(R.array.douyu_scheme_entries)
         val values = resources.getStringArray(R.array.douyu_scheme_values)
         val currentIndex = values.indexOf(currentDouyuScheme).takeIf { it >= 0 } ?: 0
-        AlertDialog.Builder(this)
-            .setTitle("斗鱼视频方案")
-            .setSingleChoiceItems(items, currentIndex) { dialog, which ->
+        TvSingleChoiceDialog.show(this, "斗鱼视频方案", items, currentIndex) { which ->
                 currentDouyuScheme = values[which]
                 preferences.setChannelDouyuScheme(currentChannelSettingsKey, currentDouyuScheme)
                 currentChannel?.let { playChannel(it) }
                 showToast("已保存当前频道斗鱼方案")
-                dialog.dismiss()
+                true
             }
-            .show()
     }
 
     private fun shouldDeferAutomaticRecovery(): Boolean {

@@ -166,8 +166,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         // Resolve the active database row again before opening. The merged
         // channel snapshot can lag a source switch; using its stale group/key
         // made OK reopen a neighbouring row in another category.
-        val playing = resolveMergedForChannel(playingChannel)
-            ?: resolveMergedForChannel(_currentChannel.value)
+        // The ViewModel is the playback source of truth. The Activity's latest
+        // flow value can lag briefly after a fast remote selection.
+        val activeChannel = _currentChannel.value ?: playingChannel
+        val playing = resolveMergedForChannel(activeChannel)
+            ?: resolveMergedForChannel(playingChannel)
             ?: _currentMergedChannel.value
         if (playing != null) {
             _currentMergedChannel.value = playing
@@ -591,9 +594,46 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun resolveMergedForChannel(channel: Channel?): MergedChannel? {
         channel ?: return null
-        return currentMergedChannels.firstOrNull { item ->
-            item.sources.any { it.channel.id == channel.id || it.channel.url == channel.url }
+        // A playlist refresh can replace database rows while the player still
+        // holds the previously selected Channel object. Prefer its stable URL,
+        // but resolve duplicate URLs by logical identity instead of returning
+        // whichever merged row happens to appear first.
+        currentMergedChannels.firstOrNull { item ->
+            item.sources.any { it.channel.id == channel.id }
+        }?.let { return it }
+
+        val url = channel.url.trim()
+        val urlMatches = if (url.isNotEmpty()) {
+            currentMergedChannels.filter { item ->
+                item.sources.any { it.channel.url.trim() == url }
+            }
+        } else {
+            emptyList()
         }
+        if (urlMatches.size == 1) return urlMatches.first()
+
+        val normalizedName = channel.normalizedName.ifBlank { Channel.normalizeName(channel.name) }
+        if (normalizedName.isNotEmpty()) {
+            currentMergedChannels.firstOrNull { it.key == normalizedName }?.let { return it }
+            urlMatches.firstOrNull { it.key == normalizedName }?.let { return it }
+            urlMatches.firstOrNull { item ->
+                item.sources.any { source ->
+                    source.channel.normalizedName.ifBlank { Channel.normalizeName(source.channel.name) } == normalizedName
+                }
+            }?.let { return it }
+        }
+
+        channel.group?.takeIf(String::isNotBlank)?.let { groupName ->
+            urlMatches.firstOrNull { item ->
+                item.sources.any { source ->
+                    source.channel.url.trim() == url && source.channel.group == groupName
+                }
+            }?.let { return it }
+        }
+
+        // Do not guess when stale rows leave several equally plausible URL
+        // matches. The caller can retain its current merged-channel context.
+        return null
     }
 
     private fun updateSelectedGroup(index: Int) {
@@ -751,9 +791,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun refreshCurrentMergedContext() {
         val current = _currentChannel.value ?: return
-        val refreshed = currentMergedChannels.firstOrNull { merged ->
-            merged.sources.any { source -> source.channel.id == current.id || source.channel.url == current.url }
-        }
+        val refreshed = resolveMergedForChannel(current)
         _currentMergedChannel.value = refreshed
         _currentSource.value = refreshed?.sources?.firstOrNull { source -> source.channel.id == current.id }
             ?: refreshed?.preferredSource

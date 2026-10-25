@@ -12,8 +12,8 @@ android {
         applicationId "com.tvplayer.app"
         minSdk 21
         targetSdk 34
-        versionCode 414
-        versionName "2.9.124"
+        versionCode 427
+        versionName "2.9.137"
     }
 
     buildTypes {

@@ -38,6 +38,16 @@
             android:authorities="${applicationId}.playback-controls"
             android:exported="false" />
         <receiver android:name=".util.SleepTimerReceiver" android:exported="false" />
+        <receiver android:name=".util.BootStartupReceiver" android:enabled="true" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".util.AppExitReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.tvplayer.app.ACTION_EXIT_MAIN_PROCESS" />
+            </intent-filter>
+        </receiver>
 
         <activity
             android:name=".ui.main.MainActivity"
